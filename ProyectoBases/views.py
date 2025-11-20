@@ -1,12 +1,13 @@
 """
-views.py - VERSIÓN CON CURSORES SQL PUROS
-Sin ORM, sin serializers, solo SQL directo
+views.py - Sistema de Arrendamiento
+Operaciones CRUD con SQL puro sobre SistemaArrendamiento
 """
 
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.db import connection
 import json
+from datetime import datetime
 
 
 # ============================================
@@ -14,9 +15,7 @@ import json
 # ============================================
 
 def ejecutar_query(query, params=None):
-    """
-    Función helper para ejecutar queries SQL
-    """
+    """Función helper para ejecutar queries SQL"""
     with connection.cursor() as cursor:
         cursor.execute(query, params or [])
         columns = [col[0] for col in cursor.description] if cursor.description else []
@@ -24,10 +23,7 @@ def ejecutar_query(query, params=None):
 
 
 def ejecutar_insert(query, params):
-    """
-    Función helper para INSERT/UPDATE/DELETE
-    Retorna el ID del registro insertado
-    """
+    """Función helper para INSERT/UPDATE/DELETE"""
     with connection.cursor() as cursor:
         cursor.execute(query, params)
         return cursor.lastrowid
@@ -38,35 +34,27 @@ def ejecutar_insert(query, params):
 # ============================================
 
 def listar_productos(request):
-    """
-    GET /api/productos/
-    Lista todos los productos
-    """
+    """GET /productos/ - Lista todos los productos"""
     query = """
-            SELECT id, \
-                   nombre, \
-                   categoria, \
-                   descripcion, \
-                   precio,
-                   icon, \
-                   reservas, \
-                   disponible, \
-                   fecha_creacion
-            FROM productos
-            WHERE disponible = 1
-            ORDER BY reservas DESC \
-            """
-
+        SELECT 
+            p.idProducto,
+            p.Nombre,
+            p.Disponibles,
+            p.Precio,
+            p.Descripcion,
+            p.TipoProducto,
+            e.Nombre as EstacionVenta
+        FROM Productos p
+        LEFT JOIN EstacionesVenta e ON p.idEstacionVenta = e.idEstacion
+        ORDER BY p.Nombre
+    """
     productos = ejecutar_query(query)
     return JsonResponse({'productos': productos}, safe=False)
 
 
 @csrf_exempt
 def crear_producto(request):
-    """
-    POST /api/productos/crear/
-    Crea un nuevo producto
-    """
+    """POST /productos/crear/ - Crea un nuevo producto"""
     if request.method != 'POST':
         return JsonResponse({'error': 'Método no permitido'}, status=405)
 
@@ -78,27 +66,18 @@ def crear_producto(request):
             return JsonResponse({'error': 'Faltan datos requeridos'}, status=400)
 
         query = """
-                INSERT INTO productos (nombre, categoria, descripcion, precio, icon, disponible)
-                VALUES (%s, %s, %s, %s, %s, %s) \
-                """
-
-        # Mapeo de íconos por categoría
-        iconos = {
-            'Electrónica': 'fas fa-laptop',
-            'Deportes': 'fas fa-futbol',
-            'Fotografía': 'fas fa-camera',
-            'Entretenimiento': 'fas fa-gamepad'
-        }
-
-        icon = iconos.get(data.get('categoria'), 'fas fa-box')
+            INSERT INTO Productos 
+                (Nombre, Disponibles, Precio, Descripcion, TipoProducto, idEstacionVenta)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """
 
         params = [
             data.get('nombre'),
-            data.get('categoria'),
-            data.get('descripcion', ''),
+            data.get('disponibles', 0),
             data.get('precio'),
-            icon,
-            1  # disponible = true
+            data.get('descripcion', ''),
+            data.get('tipoProducto', 'Venta'),
+            data.get('idEstacion', None)
         ]
 
         producto_id = ejecutar_insert(query, params)
@@ -116,14 +95,11 @@ def crear_producto(request):
 
 @csrf_exempt
 def eliminar_producto(request, producto_id):
-    """
-    DELETE /api/productos/eliminar/<id>/
-    Elimina un producto
-    """
+    """DELETE /productos/eliminar/<id>/ - Elimina un producto"""
     if request.method != 'DELETE':
         return JsonResponse({'error': 'Método no permitido'}, status=405)
 
-    query = "DELETE FROM productos WHERE id = %s"
+    query = "DELETE FROM Productos WHERE idProducto = %s"
 
     try:
         ejecutar_insert(query, [producto_id])
@@ -137,49 +113,72 @@ def eliminar_producto(request, producto_id):
 # ============================================
 
 def listar_clientes(request):
-    """
-    GET /api/clientes/
-    Lista todos los clientes
-    """
+    """GET /clientes/ - Lista todos los clientes"""
     query = """
-            SELECT id, nombre, email, telefono, reservas_total, fecha_registro
-            FROM clientes
-            WHERE activo = 1
-            ORDER BY fecha_registro DESC \
-            """
-
+        SELECT 
+            c.idCliente,
+            p.DNI,
+            CONCAT(p.Nombre, ' ', p.Apellido) as NombreCompleto,
+            p.Telefono,
+            p.Email,
+            p.Direccion,
+            c.Tipo,
+            c.EstadoPago,
+            p.FechaIngreso
+        FROM Clientes c
+        INNER JOIN Personas p ON c.idPersona = p.idPersona
+        ORDER BY p.FechaIngreso DESC
+    """
     clientes = ejecutar_query(query)
     return JsonResponse({'clientes': clientes}, safe=False)
 
 
 @csrf_exempt
 def crear_cliente(request):
-    """
-    POST /api/clientes/crear/
-    Crea un nuevo cliente
-    """
+    """POST /clientes/crear/ - Crea un nuevo cliente"""
     if request.method != 'POST':
         return JsonResponse({'error': 'Método no permitido'}, status=405)
 
     try:
         data = json.loads(request.body)
 
-        query = """
-                INSERT INTO clientes (nombre, email, telefono, reservas_total, activo)
-                VALUES (%s, %s, %s, 0, 1) \
-                """
+        # 1. Insertar la persona
+        query_persona = """
+            INSERT INTO Personas 
+                (DNI, Nombre, Apellido, Telefono, Email, Direccion, NotasAdicionales)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """
 
-        params = [
+        params_persona = [
+            data.get('dni'),
             data.get('nombre'),
+            data.get('apellido'),
+            data.get('telefono'),
             data.get('email'),
-            data.get('telefono')
+            data.get('direccion', ''),
+            data.get('notas', '')
         ]
 
-        cliente_id = ejecutar_insert(query, params)
+        persona_id = ejecutar_insert(query_persona, params_persona)
+
+        # 2. Insertar el cliente
+        query_cliente = """
+            INSERT INTO Clientes (idCliente, idPersona, Tipo, EstadoPago)
+            VALUES (%s, %s, %s, %s)
+        """
+
+        params_cliente = [
+            persona_id,  # Usar el mismo ID
+            persona_id,
+            data.get('tipo', 'Regular'),
+            data.get('estadoPago', 'Al día')
+        ]
+
+        ejecutar_insert(query_cliente, params_cliente)
 
         return JsonResponse({
             'mensaje': 'Cliente creado exitosamente',
-            'id': cliente_id
+            'id': persona_id
         }, status=201)
 
     except Exception as e:
@@ -187,123 +186,65 @@ def crear_cliente(request):
 
 
 # ============================================
-# RESERVAS
+# ALQUILERES (ARRENDAMIENTOS)
 # ============================================
 
-def listar_reservas(request):
-    """
-    GET /api/reservas/
-    Lista todas las reservas con JOIN
-    """
+def listar_alquileres(request):
+    """GET /alquileres/ - Lista todos los alquileres"""
     query = """
-            SELECT r.id, \
-                   r.fecha, \
-                   r.hora_inicio, \
-                   r.hora_fin, \
-                   r.estado, \
-                   p.nombre as producto_nombre, \
-                   c.nombre as cliente_nombre
-            FROM reservas r
-                     INNER JOIN productos p ON r.producto_id = p.id
-                     INNER JOIN clientes c ON r.cliente_id = c.id
-            ORDER BY r.fecha DESC, r.hora_inicio DESC \
-            """
-
-    reservas = ejecutar_query(query)
-    return JsonResponse({'reservas': reservas}, safe=False)
-
-
-def reservas_hoy(request):
+        SELECT 
+            pa.idAlquiler,
+            pa.FechaInicio,
+            pa.FechaCorte,
+            pa.Estado,
+            pa.CantidadAlquilada,
+            pa.PagoInicial,
+            pa.PagoDeposito,
+            p.Nombre as ProductoNombre,
+            CONCAT(per.Nombre, ' ', per.Apellido) as ClienteNombre,
+            p.Precio,
+            (pa.CantidadAlquilada * p.Precio) as TotalPagar
+        FROM ProductosArrendamiento_Clientes pa
+        INNER JOIN Productos p ON pa.idProductoArrendado = p.idProducto
+        INNER JOIN Clientes c ON pa.idCliente = c.idCliente
+        INNER JOIN Personas per ON c.idPersona = per.idPersona
+        ORDER BY pa.FechaInicio DESC
     """
-    GET /api/reservas/hoy/
-    Solo las reservas de HOY
-    """
-    query = """
-            SELECT r.id, \
-                   r.fecha, \
-                   r.hora_inicio, \
-                   r.hora_fin, \
-                   r.estado, \
-                   p.nombre as producto_nombre, \
-                   c.nombre as cliente_nombre
-            FROM reservas r
-                     INNER JOIN productos p ON r.producto_id = p.id
-                     INNER JOIN clientes c ON r.cliente_id = c.id
-            WHERE r.fecha = CURDATE()
-            ORDER BY r.hora_inicio \
-            """
-
-    reservas = ejecutar_query(query)
-    return JsonResponse({'reservas': reservas}, safe=False)
+    alquileres = ejecutar_query(query)
+    return JsonResponse({'alquileres': alquileres}, safe=False)
 
 
 @csrf_exempt
-def crear_reserva(request):
-    """
-    POST /api/reservas/crear/
-    Crea una nueva reserva
-    """
+def crear_alquiler(request):
+    """POST /alquileres/crear/ - Crea un nuevo alquiler"""
     if request.method != 'POST':
         return JsonResponse({'error': 'Método no permitido'}, status=405)
 
     try:
         data = json.loads(request.body)
 
-        # 1. Buscar el ID del producto por nombre
-        query_producto = "SELECT id FROM productos WHERE nombre = %s"
-        productos = ejecutar_query(query_producto, [data.get('producto_nombre')])
-
-        if not productos:
-            return JsonResponse({'error': 'Producto no encontrado'}, status=404)
-
-        producto_id = productos[0]['id']
-
-        # 2. Buscar el ID del cliente por nombre
-        query_cliente = "SELECT id FROM clientes WHERE nombre = %s"
-        clientes = ejecutar_query(query_cliente, [data.get('cliente_nombre')])
-
-        if not clientes:
-            return JsonResponse({'error': 'Cliente no encontrado'}, status=404)
-
-        cliente_id = clientes[0]['id']
-
-        # 3. Insertar la reserva
-        query_insertar = """
-                         INSERT INTO reservas
-                             (producto_id, cliente_id, fecha, hora_inicio, hora_fin, estado)
-                         VALUES (%s, %s, %s, %s, %s, %s) \
-                         """
+        query = """
+            INSERT INTO ProductosArrendamiento_Clientes
+                (idCliente, idProductoArrendado, FechaInicio, FechaCorte, 
+                 CantidadAlquilada, PagoInicial, PagoDeposito)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """
 
         params = [
-            producto_id,
-            cliente_id,
-            data.get('fecha'),
-            data.get('hora_inicio'),
-            data.get('hora_fin'),
-            data.get('estado', 'pendiente')
+            data.get('idCliente'),
+            data.get('idProducto'),
+            data.get('fechaInicio'),
+            data.get('fechaCorte'),
+            data.get('cantidad', 1),
+            data.get('pagoInicial', 0),
+            data.get('pagoDeposito', 0)
         ]
 
-        reserva_id = ejecutar_insert(query_insertar, params)
-
-        # 4. Actualizar contador de reservas del producto
-        query_update_producto = """
-                                UPDATE productos
-                                SET reservas = reservas + 1
-                                WHERE id = %s \
-                                """
-        ejecutar_insert(query_update_producto, [producto_id])
-
-        # 5. Actualizar contador del cliente
-        query_update_cliente = """
-                               UPDATE clientes
-                               SET reservas_total = reservas_total + 1
-                               WHERE id = %s \
-                               """
-        ejecutar_insert(query_update_cliente, [cliente_id])
+        alquiler_id = ejecutar_insert(query, params)
 
         return JsonResponse({
-            'mensaje': 'Reserva creada exitosamente',
-            'id': reserva_id
+            'mensaje': 'Alquiler creado exitosamente',
+            'id': alquiler_id
         }, status=201)
 
     except Exception as e:
@@ -315,79 +256,150 @@ def crear_reserva(request):
 # ============================================
 
 def estadisticas_dashboard(request):
-    """
-    GET /api/estadisticas/
-    Retorna todas las estadísticas para el dashboard
-    """
+    """GET /estadisticas/ - Retorna estadísticas del sistema"""
 
     # Total de productos
-    query_productos = "SELECT COUNT(*) as total FROM productos WHERE disponible = 1"
+    query_productos = "SELECT COUNT(*) as total FROM Productos"
     total_productos = ejecutar_query(query_productos)[0]['total']
 
-    # Total de reservas
-    query_reservas = "SELECT COUNT(*) as total FROM reservas"
-    total_reservas = ejecutar_query(query_reservas)[0]['total']
+    # Total de clientes
+    query_clientes = "SELECT COUNT(*) as total FROM Clientes"
+    total_clientes = ejecutar_query(query_clientes)[0]['total']
 
-    # Reservas por estado
+    # Alquileres por estado
     query_estados = """
-                    SELECT SUM(CASE WHEN estado = 'confirmada' THEN 1 ELSE 0 END) as confirmadas, \
-                           SUM(CASE WHEN estado = 'pendiente' THEN 1 ELSE 0 END)  as pendientes, \
-                           SUM(CASE WHEN estado = 'cancelada' THEN 1 ELSE 0 END)  as canceladas
-                    FROM reservas \
-                    """
+        SELECT 
+            SUM(CASE WHEN Estado = 'Activo' THEN 1 ELSE 0 END) as activos,
+            SUM(CASE WHEN Estado = 'Pendiente' THEN 1 ELSE 0 END) as pendientes,
+            SUM(CASE WHEN Estado = 'Realizado' THEN 1 ELSE 0 END) as realizados
+        FROM ProductosArrendamiento_Clientes
+    """
     estados = ejecutar_query(query_estados)[0]
 
-    # Ingresos totales (suma de precios de reservas confirmadas)
+    # Ingresos totales
     query_ingresos = """
-                     SELECT SUM(p.precio) as total
-                     FROM reservas r
-                              INNER JOIN productos p ON r.producto_id = p.id
-                     WHERE r.estado = 'confirmada' \
-                     """
+        SELECT SUM(Monto) as total
+        FROM Pagos
+        WHERE MONTH(FechaPago) = MONTH(CURRENT_DATE())
+    """
     ingresos = ejecutar_query(query_ingresos)[0]['total'] or 0
 
-    # Tasa de cancelación
-    tasa_cancelacion = (estados['canceladas'] / total_reservas * 100) if total_reservas > 0 else 0
-
-    # Productos más populares
+    # Productos más arrendados
     query_populares = """
-                      SELECT id, nombre, categoria, precio, reservas, icon
-                      FROM productos
-                      WHERE disponible = 1
-                      ORDER BY reservas DESC LIMIT 5 \
-                      """
+        SELECT 
+            p.idProducto,
+            p.Nombre,
+            p.Precio,
+            COUNT(pa.idAlquiler) as total_alquileres
+        FROM Productos p
+        LEFT JOIN ProductosArrendamiento_Clientes pa 
+            ON p.idProducto = pa.idProductoArrendado
+        GROUP BY p.idProducto
+        ORDER BY total_alquileres DESC
+        LIMIT 5
+    """
     productos_populares = ejecutar_query(query_populares)
 
     return JsonResponse({
         'total_productos': total_productos,
-        'total_reservas': total_reservas,
-        'reservas_confirmadas': estados['confirmadas'],
-        'reservas_pendientes': estados['pendientes'],
-        'reservas_canceladas': estados['canceladas'],
-        'ingresos_totales': float(ingresos),
-        'tasa_cancelacion': round(tasa_cancelacion, 1),
+        'total_clientes': total_clientes,
+        'alquileres_activos': estados['activos'] or 0,
+        'alquileres_pendientes': estados['pendientes'] or 0,
+        'alquileres_realizados': estados['realizados'] or 0,
+        'ingresos_mes': float(ingresos),
         'productos_populares': productos_populares
     })
 
 
-def grafico_reservas(request):
-    """
-    GET /api/grafico-reservas/?periodo=30
-    Datos para el gráfico de reservas
-    """
-    periodo = request.GET.get('periodo', '30')
+# ============================================
+# ESTACIONES DE VENTA
+# ============================================
 
+def listar_estaciones(request):
+    """GET /estaciones/ - Lista todas las estaciones"""
     query = """
-            SELECT
-                DATE (fecha) as fecha, COUNT (*) as total
-            FROM reservas
-            WHERE fecha >= DATE_SUB(CURDATE() \
-                , INTERVAL %s DAY)
-              AND estado IN ('confirmada' \
-                , 'pendiente')
-            GROUP BY DATE (fecha)
-            ORDER BY fecha \
-            """
+        SELECT 
+            idEstacion,
+            Nombre,
+            DescripcionEstacion
+        FROM EstacionesVenta
+        ORDER BY Nombre
+    """
+    estaciones = ejecutar_query(query)
+    return JsonResponse({'estaciones': estaciones}, safe=False)
 
-    datos = ejecutar_query(query, [periodo])
-    return JsonResponse({'datos': datos}, safe=False)
+
+# ============================================
+# PAGOS
+# ============================================
+
+def listar_pagos(request):
+    """GET /pagos/ - Lista todos los pagos"""
+    query = """
+        SELECT 
+            p.idPago,
+            p.Monto,
+            p.FechaPago,
+            p.MetodoPago,
+            CONCAT(per.Nombre, ' ', per.Apellido) as Cliente
+        FROM Pagos p
+        LEFT JOIN Clientes c ON p.idCliente = c.idCliente
+        LEFT JOIN Personas per ON c.idPersona = per.idPersona
+        ORDER BY p.FechaPago DESC
+    """
+    pagos = ejecutar_query(query)
+    return JsonResponse({'pagos': pagos}, safe=False)
+
+
+@csrf_exempt
+def registrar_pago(request):
+    """POST /pagos/registrar/ - Registra un nuevo pago"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+
+        query = """
+            INSERT INTO Pagos 
+                (idPago, idCliente, idAlquiler, Monto, MetodoPago)
+            VALUES (%s, %s, %s, %s, %s)
+        """
+
+        # Generar ID único
+        query_max_id = "SELECT IFNULL(MAX(idPago), 0) + 1 as nuevo_id FROM Pagos"
+        nuevo_id = ejecutar_query(query_max_id)[0]['nuevo_id']
+
+        params = [
+            nuevo_id,
+            data.get('idCliente'),
+            data.get('idAlquiler'),
+            data.get('monto'),
+            data.get('metodoPago', 'Efectivo')
+        ]
+
+        ejecutar_insert(query, params)
+
+        return JsonResponse({
+            'mensaje': 'Pago registrado exitosamente',
+            'id': nuevo_id
+        }, status=201)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+# ============================================
+# PÁGINAS HTML (RENDERIZADO)
+# ============================================
+
+def pagina_login(request):
+    """Renderiza la página de login"""
+    from django.shortcuts import render
+    return render(request, 'login.html')
+
+
+def pagina_dashboard(request):
+    """Renderiza la página del dashboard"""
+    from django.shortcuts import render
+    return render(request, 'dashboard.html')
