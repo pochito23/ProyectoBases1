@@ -55,7 +55,7 @@ def registrar_administrador(request):
             INSERT INTO administradores (Usuario, Password, Nombre, Email)
             VALUES (%s, %s, %s, %s)
         """
-        params = [data.get('usuario'), data.get('password'), data.get('nombre'), data.get('email')]
+        params = [data.get('Usuario'), data.get('Password'), data.get('Nombre'), data.get('Email')]
         admin_id = ejecutar_insert(query, params)
 
         return JsonResponse({
@@ -67,7 +67,7 @@ def registrar_administrador(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
 
-
+@csrf_exempt
 def listar_productos(request, idAdministrador=None):
     if not idAdministrador:
         idAdministrador = request.GET.get('idAdministrador')
@@ -161,7 +161,7 @@ def eliminar_producto(request, producto_id):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
-
+@csrf_exempt
 def listar_clientes(request):
     id_admin = request.GET.get('idAdministrador')
     if not id_admin:
@@ -272,7 +272,7 @@ def eliminar_cliente(request, cliente_id):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
-
+@csrf_exempt
 def listar_alquileres(request):
     id_admin = request.GET.get('idAdministrador')
     if not id_admin:
@@ -387,7 +387,7 @@ def eliminar_alquiler(request, alquiler_id):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
-
+@csrf_exempt
 def listar_pagos(request):
         id_admin = request.GET.get('idAdministrador')
         if not id_admin:
@@ -410,7 +410,6 @@ def listar_pagos(request):
         return JsonResponse({'pagos': pagos}, safe=False)
 
 
-@csrf_exempt
 @csrf_exempt
 def registrar_pago(request):
     if request.method != 'POST':
@@ -488,7 +487,7 @@ def eliminar_pago(request, pago_id):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
-
+@csrf_exempt
 def listar_estaciones(request):
     id_admin = request.GET.get('idAdministrador')
     if not id_admin:
@@ -550,7 +549,7 @@ def eliminar_estacion(request, estacion_id):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
-
+@csrf_exempt
 def estadisticas_dashboard(request):
     id_admin = request.GET.get('idAdministrador')
     if not id_admin:

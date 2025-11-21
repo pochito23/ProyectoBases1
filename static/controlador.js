@@ -73,7 +73,7 @@ async function registrarAdministrador(evento) {
     }
 
     try {
-        const respuesta = await fetch('api/registrar/', {
+        const respuesta = await fetch('/api/registrar/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ usuario, password, nombre, email })
