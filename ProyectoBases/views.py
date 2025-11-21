@@ -389,21 +389,25 @@ def eliminar_alquiler(request, alquiler_id):
 
 
 def listar_pagos(request):
-    id_admin = request.GET.get('idAdministrador')
-    if not id_admin:
-        return JsonResponse({'error': 'ID de administrador requerido'}, status=400)
+        id_admin = request.GET.get('idAdministrador')
+        if not id_admin:
+            return JsonResponse({'error': 'ID de administrador requerido'}, status=400)
 
-    query = """
-        SELECT pt.idTransaccion, pt.MontoTransaccion as Monto, t.FechaTransaccion as FechaPago,
-               pt.MetodoPago, CONCAT(p.Nombre, ' ', p.Apellido) as Cliente
-        FROM pagostransacciones pt
-        INNER JOIN transacciones t ON pt.idTransaccion = t.idTransaccion
-        LEFT JOIN clientes c ON t.idCliente = c.idCliente
-        LEFT JOIN personas p ON c.idPersona = p.idPersona
-        ORDER BY t.FechaTransaccion DESC
+        query = """
+                SELECT pt.idTransaccion, \
+                       pt.MontoTransaccion               as Monto, \
+                       t.FechaTransaccion                as FechaPago,
+                       pt.MetodoPago, \
+                       CONCAT(p.Nombre, ' ', p.Apellido) as Cliente
+                FROM pagostransacciones pt
+                         INNER JOIN transacciones t ON pt.idTransaccion = t.idTransaccion
+                         LEFT JOIN clientes c ON t.idCliente = c.idCliente
+                         LEFT JOIN personas p ON c.idPersona = p.idPersona
+                WHERE t.idCliente IN (SELECT idCliente FROM clientes WHERE idAdministrador = %s)
+                ORDER BY t.FechaTransaccion DESC
     """
-    pagos = ejecutar_query(query, [])
-    return JsonResponse({'pagos': pagos}, safe=False)
+        pagos = ejecutar_query(query, [id_admin])
+        return JsonResponse({'pagos': pagos}, safe=False)
 
 
 @csrf_exempt

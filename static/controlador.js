@@ -634,7 +634,6 @@ function obtenerHTMLClientes() {
         <div id="listaClientes" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
     `;
 }
-
 function renderizarClientes() {
     const contenedor = document.getElementById('listaClientes');
 
@@ -701,7 +700,8 @@ async function guardarCliente(evento) {
             if (seccionActual === 'clientes') renderizarClientes();
             if (seccionActual === 'dashboard') cargarEstadisticas();
         } else {
-            mostrarNotificacion('Error al guardar cliente', 'error');
+            const error = await respuesta.json();
+            mostrarNotificacion('Error al guardar cliente: ' + (error.error || 'Error desconocido'), 'error');
         }
     } catch (error) {
         console.error('Error:', error);
@@ -748,7 +748,8 @@ async function eliminarCliente(id) {
             if (seccionActual === 'clientes') renderizarClientes();
             if (seccionActual === 'dashboard') cargarEstadisticas();
         } else {
-            mostrarNotificacion('Error al eliminar cliente', 'error');
+            const error = await respuesta.json();
+            mostrarNotificacion('Error al eliminar cliente: ' + (error.error || 'Error desconocido'), 'error');
         }
     } catch (error) {
         console.error('Error:', error);
@@ -848,7 +849,8 @@ async function guardarAlquiler(evento) {
                 cargarAlquileresHoy();
             }
         } else {
-            mostrarNotificacion('Error al registrar alquiler', 'error');
+            const error = await respuesta.json();
+            mostrarNotificacion('Error al registrar alquiler: ' + (error.error || 'Error desconocido'), 'error');
         }
     } catch (error) {
         console.error('Error:', error);
@@ -873,7 +875,8 @@ async function eliminarAlquiler(id) {
                 cargarAlquileresHoy();
             }
         } else {
-            mostrarNotificacion('Error al eliminar alquiler', 'error');
+            const error = await respuesta.json();
+            mostrarNotificacion('Error al eliminar alquiler: ' + (error.error || 'Error desconocido'), 'error');
         }
     } catch (error) {
         console.error('Error:', error);
@@ -922,7 +925,7 @@ function renderizarPagos() {
                 </div>
             </div>
             <div class="text-right">
-                <p class="text-2xl font-bold text-green-600">L. ${parseFloat(p.monto||0 ).toFixed(2)}</p>
+                <p class="text-2xl font-bold text-green-600">L. ${parseFloat(p.Monto || 0).toFixed(2)}</p>
             </div>
         </div>
     `).join('');
@@ -933,7 +936,7 @@ async function guardarPago(evento) {
 
     const datos = {
         idCliente: parseInt(document.getElementById('clientePago').value),
-        idAlquiler: parseInt(document.getElementById('alquilerPago').value) || null,
+        idAlquiler: document.getElementById('alquilerPago').value ? parseInt(document.getElementById('alquilerPago').value) : null,
         monto: parseFloat(document.getElementById('montoPago').value),
         metodoPago: document.getElementById('metodoPago').value,
         idAdministrador: usuarioActual.idAdministrador
@@ -953,7 +956,8 @@ async function guardarPago(evento) {
             if (seccionActual === 'pagos') renderizarPagos();
             if (seccionActual === 'dashboard') cargarEstadisticas();
         } else {
-            mostrarNotificacion('Error al registrar pago', 'error');
+            const error = await respuesta.json();
+            mostrarNotificacion('Error al registrar pago: ' + (error.error || 'Error desconocido'), 'error');
         }
     } catch (error) {
         console.error('Error:', error);
@@ -997,7 +1001,12 @@ function renderizarEstaciones() {
                     <h4 class="font-bold text-lg text-gray-800">${e.Nombre}</h4>
                 </div>
             </div>
-            <p class="text-sm text-gray-600">${e.DescripcionEstacion || 'Sin descripción'}</p>
+            <p class="text-sm text-gray-600 mb-4">${e.DescripcionEstacion || 'Sin descripción'}</p>
+            <div class="flex gap-2">
+                <button onclick="eliminarEstacion(${e.idEstacion})" class="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all text-sm">
+                    <i class="fas fa-trash mr-1"></i>Eliminar
+                </button>
+            </div>
         </div>
     `).join('');
 }
@@ -1024,7 +1033,30 @@ async function guardarEstacion(evento) {
             await cargarEstaciones();
             if (seccionActual === 'estaciones') renderizarEstaciones();
         } else {
-            mostrarNotificacion('Error al agregar estación', 'error');
+            const error = await respuesta.json();
+            mostrarNotificacion('Error al agregar estación: ' + (error.error || 'Error desconocido'), 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarNotificacion('Error de conexión', 'error');
+    }
+}
+
+async function eliminarEstacion(id) {
+    if (!confirm('¿Estás seguro de eliminar esta estación?')) return;
+
+    try {
+        const respuesta = await fetch(`/estaciones/eliminar/${id}/?idAdministrador=${usuarioActual.idAdministrador}`, {
+            method: 'DELETE'
+        });
+
+        if (respuesta.ok) {
+            mostrarNotificacion('Estación eliminada exitosamente', 'success');
+            await cargarEstaciones();
+            if (seccionActual === 'estaciones') renderizarEstaciones();
+        } else {
+            const error = await respuesta.json();
+            mostrarNotificacion('Error al eliminar estación: ' + (error.error || 'Error desconocido'), 'error');
         }
     } catch (error) {
         console.error('Error:', error);
@@ -1129,7 +1161,7 @@ async function cargarReportes() {
             totalAlquileres: alquileres.filter(a => a.ClienteNombre === c.NombreCompleto).length
         })).sort((a, b) => b.totalAlquileres - a.totalAlquileres).slice(0, 5);
 
-        document.getElementById('reporteTopClientes').innerHTML = clientesConAlquileres.map((c, i) => `
+        document.getElementById('reporteTopClientes').innerHTML = clientesConAlquileres.length > 0 ? clientesConAlquileres.map((c, i) => `
             <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div class="flex items-center space-x-3">
                     <div class="w-8 h-8 rounded-full bg-gradient-to-br from-yellow-400 to-orange-400 flex items-center justify-center text-white font-bold text-sm">
@@ -1142,16 +1174,16 @@ async function cargarReportes() {
                 </div>
                 <span class="text-lg font-bold text-purple-600">${c.totalAlquileres}</span>
             </div>
-        `).join('') || '<p class="text-gray-500 text-center">No hay datos</p>';
+        `).join('') : '<p class="text-gray-500 text-center">No hay datos</p>';
 
         const productosConIngresos = productos.map(p => {
             const ingresosProducto = alquileres
-    .filter(a => a.ProductoNombre === p.nombre)
-    .reduce((sum, a) => sum + parseFloat(a.TotalPagar || 0), 0);
+                .filter(a => a.ProductoNombre === p.nombre)
+                .reduce((sum, a) => sum + parseFloat(a.TotalPagar || 0), 0);
             return { ...p, ingresos: ingresosProducto };
         }).sort((a, b) => b.ingresos - a.ingresos).slice(0, 5);
 
-        document.getElementById('reporteProductosRentables').innerHTML = productosConIngresos.map(p => `
+        document.getElementById('reporteProductosRentables').innerHTML = productosConIngresos.length > 0 ? productosConIngresos.map(p => `
             <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div class="flex items-center space-x-3">
                     <i class="fas fa-box text-2xl text-blue-400"></i>
@@ -1162,7 +1194,7 @@ async function cargarReportes() {
                 </div>
                 <span class="text-lg font-bold text-green-600">L. ${p.ingresos.toFixed(2)}</span>
             </div>
-        `).join('') || '<p class="text-gray-500 text-center">No hay datos</p>';
+        `).join('') : '<p class="text-gray-500 text-center">No hay datos</p>';
 
         const estados = {
             'Activo': alquileres.filter(a => a.Estado === 'Activo').length,
@@ -1221,7 +1253,7 @@ async function cargarReportes() {
                             <td class="px-4 py-3 text-sm text-gray-800">${p.Cliente || 'N/A'}</td>
                             <td class="px-4 py-3 text-sm text-gray-600">${p.MetodoPago}</td>
                             <td class="px-4 py-3 text-sm text-gray-600">${new Date(p.FechaPago).toLocaleDateString('es-HN')}</td>
-                            <td class="px-4 py-3 text-sm text-right font-bold text-green-600">L. ${parseFloat(p.monto).toFixed(2)}</td>
+                            <td class="px-4 py-3 text-sm text-right font-bold text-green-600">L. ${parseFloat(p.Monto || 0).toFixed(2)}</td>
                         </tr>
                     `).join('')}
                 </tbody>
@@ -1230,6 +1262,7 @@ async function cargarReportes() {
 
     } catch (error) {
         console.error('Error al cargar reportes:', error);
+        mostrarNotificacion('Error al cargar reportes', 'error');
     }
 }
 
@@ -1335,7 +1368,7 @@ function cargarAlquileresEnSelect() {
     const select = document.getElementById('alquilerPago');
     if (!select) return;
 
-    const alquileresActivos = alquileres.filter(a => a.Estado === 'Activo');
+    const alquileresActivos = alquileres.filter(a => a.Estado === 'Activo' || a.Estado === 'Pendiente');
 
     select.innerHTML = '<option value="">Seleccionar alquiler (opcional)</option>' +
         alquileresActivos.map(a => `<option value="${a.idAlquiler}">${a.ProductoNombre} - ${a.ClienteNombre}</option>`).join('');
@@ -1379,7 +1412,9 @@ function mostrarNotificacion(mensaje, tipo = 'info') {
     setTimeout(() => {
         notificacion.style.animation = 'slide-out 0.3s ease-out';
         setTimeout(() => {
-            document.body.removeChild(notificacion);
+            if (document.body.contains(notificacion)) {
+                document.body.removeChild(notificacion);
+            }
         }, 300);
     }, 3000);
 }
