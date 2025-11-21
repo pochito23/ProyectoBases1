@@ -12,7 +12,6 @@
 
     <div class="w-full max-w-md">
         <div class="bg-white rounded-3xl shadow-2xl p-8 md:p-12 fade-in">
-            <!-- Logo y título -->
             <div class="text-center mb-8">
                 <div class="w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center text-4xl" style="background: linear-gradient(135deg, #ec4899, #8b5cf6);">
                     <i class="fas fa-store text-white"></i>
@@ -23,7 +22,6 @@
                 <p class="text-gray-600">Gestión de alquileres y ventas</p>
             </div>
 
-            <!-- Formulario de inicio de sesión -->
             <div class="space-y-4">
                 <p class="text-center text-gray-700 font-medium mb-6">Inicia sesión para continuar</p>
 
@@ -52,7 +50,6 @@
                             placeholder="••••••••">
                     </div>
 
-                    <!-- Mensaje de error -->
                     <div id="mensajeError" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-sm">
                         <i class="fas fa-exclamation-circle mr-2"></i>
                         <span id="textoError">Usuario o contraseña incorrectos</span>
@@ -66,7 +63,6 @@
                     </button>
                 </form>
 
-                <!-- Divider -->
                 <div class="relative my-6">
                     <div class="absolute inset-0 flex items-center">
                         <div class="w-full border-t border-gray-300"></div>
@@ -76,26 +72,16 @@
                     </div>
                 </div>
 
-                <!-- Botón para registrar administrador -->
                 <button
                     onclick="abrirModalRegistro()"
                     class="w-full py-3 rounded-full border-2 border-purple-400 text-purple-600 font-semibold hover:bg-purple-50 transition-all">
                     <i class="fas fa-user-plus mr-2"></i>Registrar Nuevo Administrador
                 </button>
 
-                <!-- Información de cuentas de prueba -->
-                <div class="mt-6 p-4 bg-blue-50 rounded-lg">
-                    <p class="text-xs text-blue-800 font-medium mb-2">
-                        <i class="fas fa-info-circle mr-1"></i>Cuentas de prueba:
-                    </p>
-                    <p class="text-xs text-blue-700">Usuario: <strong>admin</strong> | Contraseña: <strong>admin123</strong></p>
-                    <p class="text-xs text-blue-700">Usuario: <strong>kevin</strong> | Contraseña: <strong>kevin123</strong></p>
-                </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal para registrar administrador -->
     <div id="modalRegistro" class="hidden fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50 p-4">
         <div class="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl">
             <div class="flex justify-between items-center mb-6">

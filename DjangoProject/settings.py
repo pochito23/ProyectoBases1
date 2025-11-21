@@ -66,9 +66,9 @@ WSGI_APPLICATION = 'DjangoProject.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'reservas_db',
+        'NAME': 'sistemaarrendamiento',
         'USER': 'root',
-        'PASSWORD': 'hola',  # ⚠️ TU CONTRASEÑA DE MYSQL
+        'PASSWORD': 'hola',
         'HOST': '127.0.0.1',
         'PORT': '3306',
     }

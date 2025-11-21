@@ -1,7 +1,6 @@
 // VARIABLES GLOBALES
 
 let usuarioActual = null;
-
 let seccionActual = 'dashboard';
 
 let administradores = [
@@ -18,13 +17,13 @@ let estaciones = [];
 
 // INICIALIZACIÓN
 
-
 document.addEventListener('DOMContentLoaded', function() {
     cargarAdministradores();
-    
-    if (window.location.pathname.includes('dashboard.html')) {
+
+    // Detectar si estamos en dashboard o login
+    if (window.location.pathname.includes('dashboard')) {
         verificarSesion();
-    } else if (window.location.pathname.includes('login.html')) {
+    } else if (window.location.pathname.includes('login') || window.location.pathname === '/') {
         configurarLogin();
     }
 });
@@ -32,7 +31,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // GESTIÓN DE ADMINISTRADORES
 
-// Cargar administradores desde localStorage
 function cargarAdministradores() {
     const adminsGuardados = localStorage.getItem('administradores');
     if (adminsGuardados) {
@@ -50,7 +48,6 @@ function abrirModalRegistro() {
     modal.classList.add('flex');
 }
 
-// Cerrar modal de registro
 function cerrarModalRegistro() {
     const modal = document.getElementById('modalRegistro');
     modal.classList.add('hidden');
@@ -61,112 +58,106 @@ function cerrarModalRegistro() {
 
 // AUTENTICACIÓN
 
-// Configurar eventos del login
 function configurarLogin() {
     const formulario = document.getElementById('formularioLogin');
     if (formulario) {
         formulario.addEventListener('submit', iniciarSesion);
     }
-    
+
     const formularioRegistro = document.getElementById('formularioRegistro');
     if (formularioRegistro) {
         formularioRegistro.addEventListener('submit', registrarAdministrador);
     }
 }
 
-// Iniciar sesión
 function iniciarSesion(evento) {
     evento.preventDefault();
-    
+
     const usuario = document.getElementById('usuarioInput').value;
     const password = document.getElementById('passwordInput').value;
-    
+
     const admin = administradores.find(a => a.usuario === usuario && a.password === password);
-    
+
     if (admin) {
         // Guardar sesión
         usuarioActual = admin;
         localStorage.setItem('usuarioActual', JSON.stringify(admin));
-        
-        window.location.href = '../templates/dashboard.html';
+
+        // CORRECCIÓN: Redirigir a la URL correcta de Django
+        window.location.href = '/dashboard/';
+
     } else {
         mostrarError('Usuario o contraseña incorrectos');
     }
 }
 
-// Registrar nuevo administrador
 function registrarAdministrador(evento) {
     evento.preventDefault();
-    
+
     const nombre = document.getElementById('nombreRegistro').value;
     const usuario = document.getElementById('usuarioRegistro').value;
     const email = document.getElementById('emailRegistro').value;
     const password = document.getElementById('passwordRegistro').value;
     const confirmarPassword = document.getElementById('confirmarPasswordRegistro').value;
-    
-    // Validar que las contraseñas coincidan
+
     if (password !== confirmarPassword) {
         alert('Las contraseñas no coinciden');
         return;
     }
-    
-    // Verificar que el usuario no exista
+
     if (administradores.some(a => a.usuario === usuario)) {
         alert('El usuario ya existe');
         return;
     }
-    
-    // Verificar que el email no exista
+
     if (administradores.some(a => a.email === email)) {
         alert('El correo electrónico ya está registrado');
         return;
     }
-    
-    // Crear nuevo administrador
+
     const nuevoAdmin = {
         usuario: usuario,
         password: password,
         nombre: nombre,
         email: email
     };
-    
+
     administradores.push(nuevoAdmin);
     guardarAdministradores();
-    
+
     alert('Administrador registrado exitosamente. Ya puedes iniciar sesión.');
     cerrarModalRegistro();
 }
 
-// Mostrar error en el login
 function mostrarError(mensaje) {
     const mensajeError = document.getElementById('mensajeError');
     const textoError = document.getElementById('textoError');
-    
+
     textoError.textContent = mensaje;
     mensajeError.classList.remove('hidden');
-    
+
     setTimeout(() => {
         mensajeError.classList.add('hidden');
     }, 3000);
 }
 
-// Verificar sesión activa
 function verificarSesion() {
     const sesionGuardada = localStorage.getItem('usuarioActual');
-    
+
     if (sesionGuardada) {
         usuarioActual = JSON.parse(sesionGuardada);
         inicializarDashboard();
     } else {
-        window.location.href = 'login.html';
+        // CORRECCIÓN: Redirigir a la URL correcta de Django
+        window.location.href = '/login/';
     }
 }
 
-// Cerrar sesión
 function cerrarSesion() {
     if (confirm('¿Estás seguro que deseas cerrar sesión?')) {
         localStorage.removeItem('usuarioActual');
-        window.location.href = 'login.html';
+        // CORRECCIÓN: Redirigir a la URL correcta de Django
+        window.location.href = '/login/';
     }
 }
 
@@ -176,15 +167,11 @@ function cerrarSesion() {
 // ============================================
 
 function inicializarDashboard() {
-    // Mostrar información del usuario
-    document.getElementById('nombreUsuario').textContent = usuarioActual.nombre;
+    document.getElementById('nombreUsuario').textContent = usuarioActual.usuario;
     document.getElementById('emailUsuario').textContent = usuarioActual.email;
     document.getElementById('inicialUsuario').textContent = usuarioActual.nombre.charAt(0).toUpperCase();
-    
-    // Cargar datos desde el backend
+
     cargarDatosIniciales();
-    
-    // Mostrar dashboard
     mostrarSeccion('dashboard');
 }
 
@@ -202,10 +189,9 @@ async function cargarDatosIniciales() {
     ]);
 }
 
-// Cargar productos
 async function cargarProductos() {
     try {
-        const respuesta = await fetch('http://localhost:8000/productos/');
+        const respuesta = await fetch('/productos/');
         const datos = await respuesta.json();
         productos = datos.productos || [];
     } catch (error) {
@@ -214,10 +200,9 @@ async function cargarProductos() {
     }
 }
 
-// Cargar clientes
 async function cargarClientes() {
     try {
-        const respuesta = await fetch('http://localhost:8000/clientes/');
+        const respuesta = await fetch('/clientes/');
         const datos = await respuesta.json();
         clientes = datos.clientes || [];
     } catch (error) {
@@ -226,10 +211,9 @@ async function cargarClientes() {
     }
 }
 
-// Cargar alquileres
 async function cargarAlquileres() {
     try {
-        const respuesta = await fetch('http://localhost:8000/alquileres/');
+        const respuesta = await fetch('/alquileres/');
         const datos = await respuesta.json();
         alquileres = datos.alquileres || [];
     } catch (error) {
@@ -238,15 +222,25 @@ async function cargarAlquileres() {
     }
 }
 
-// Cargar estaciones
 async function cargarEstaciones() {
     try {
-        const respuesta = await fetch('http://localhost:8000/estaciones/');
+        const respuesta = await fetch('/estaciones/');
         const datos = await respuesta.json();
         estaciones = datos.estaciones || [];
     } catch (error) {
         console.error('Error al cargar estaciones:', error);
         estaciones = [];
+    }
+}
+
+async function cargarPagos() {
+    try {
+        const respuesta = await fetch('/pagos/');
+        const datos = await respuesta.json();
+        pagos = datos.pagos || [];
+    } catch (error) {
+        console.error('Error al cargar estaciones:', error);
+        pagos = [];
     }
 }
 
@@ -258,18 +252,16 @@ async function cargarEstaciones() {
 function mostrarSeccion(seccion) {
     seccionActual = seccion;
     const contenedor = document.getElementById('contenidoPrincipal');
-    
-    // Actualizar enlaces de navegación
+
     document.querySelectorAll('.enlace-nav').forEach(enlace => {
         enlace.classList.remove('bg-gradient-to-r', 'from-pink-200', 'to-purple-200', 'shadow-sm');
     });
-    
+
     const enlaceActivo = document.querySelector(`[data-seccion="${seccion}"]`);
     if (enlaceActivo) {
         enlaceActivo.classList.add('bg-gradient-to-r', 'from-pink-200', 'to-purple-200', 'shadow-sm');
     }
-    
-    // Mostrar contenido según sección
+
     switch(seccion) {
         case 'dashboard':
             contenedor.innerHTML = obtenerHTMLDashboard();
@@ -296,18 +288,16 @@ function mostrarSeccion(seccion) {
             renderizarEstaciones();
             break;
     }
-    
-    // Cerrar menú en móvil
+
     if (window.innerWidth < 768) {
         alternarMenu();
     }
 }
 
-// Alternar menú lateral (móvil)
 function alternarMenu() {
     const menu = document.getElementById('menuLateral');
     const overlay = document.getElementById('overlay');
-    
+
     if (menu.classList.contains('activo')) {
         menu.classList.remove('activo');
         overlay.classList.add('hidden');
@@ -336,12 +326,11 @@ function obtenerHTMLDashboard() {
             </div>
         </div>
 
-        <!-- Tarjetas de estadísticas -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div class="bg-white rounded-2xl p-6 shadow-lg border-t-4 border-pink-300">
-                <div class="flex justify-between items-start">
+            <div class="bg-white rounded-2xl p-6 shadow-lg border-t-4 border-pink-300 hover:-translate-y-3 hover:shadow-2xl transition-all">
+                <div class="flex justify-between items-start ">
                     <div>
-                        <p class="text-gray-500 text-sm font-medium mb-1">Total Productos</p>
+                        <p class="text-gray-500 text-sm font-medium mb-1 ">Total Productos</p>
                         <h3 id="totalProductos" class="text-4xl font-bold text-gray-800">0</h3>
                     </div>
                     <div class="w-14 h-14 rounded-xl flex items-center justify-center text-2xl" style="background: linear-gradient(135deg, #fecdd3, #fbcfe8);">
@@ -350,7 +339,7 @@ function obtenerHTMLDashboard() {
                 </div>
             </div>
 
-            <div class="bg-white rounded-2xl p-6 shadow-lg border-t-4 border-blue-300">
+            <div class="bg-white rounded-2xl p-6 shadow-lg border-t-4 border-blue-300 hover:-translate-y-3 hover:shadow-2xl transition-all">
                 <div class="flex justify-between items-start">
                     <div>
                         <p class="text-gray-500 text-sm font-medium mb-1">Total Clientes</p>
@@ -362,7 +351,7 @@ function obtenerHTMLDashboard() {
                 </div>
             </div>
 
-            <div class="bg-white rounded-2xl p-6 shadow-lg border-t-4 border-green-300">
+            <div class="bg-white rounded-2xl p-6 shadow-lg border-t-4 border-green-300 hover:-translate-y-3 hover:shadow-2xl transition-all" >
                 <div class="flex justify-between items-start">
                     <div>
                         <p class="text-gray-500 text-sm font-medium mb-1">Alquileres Activos</p>
@@ -374,7 +363,7 @@ function obtenerHTMLDashboard() {
                 </div>
             </div>
 
-            <div class="bg-white rounded-2xl p-6 shadow-lg border-t-4 border-yellow-300">
+            <div class="bg-white rounded-2xl p-6 shadow-lg border-t-4 border-yellow-300 hover:-translate-y-3 hover:shadow-2xl transition-all    ">
                 <div class="flex justify-between items-start">
                     <div>
                         <p class="text-gray-500 text-sm font-medium mb-1">Ingresos del Mes</p>
@@ -387,7 +376,6 @@ function obtenerHTMLDashboard() {
             </div>
         </div>
 
-        <!-- Acciones rápidas -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             <button onclick="abrirModal('modalProducto')" class="py-4 rounded-xl text-white font-semibold text-lg shadow-lg hover:shadow-xl transition-all" style="background: linear-gradient(135deg, #FFB5E8 0%, #DCD6F7 100%);">
                 <i class="fas fa-plus mr-2"></i>Agregar Producto
@@ -400,7 +388,6 @@ function obtenerHTMLDashboard() {
             </button>
         </div>
 
-        <!-- Productos más populares -->
         <div class="bg-white rounded-2xl p-6 shadow-lg">
             <h3 class="text-xl font-bold text-gray-800 mb-4">
                 <i class="fas fa-fire text-orange-500 mr-2"></i>Productos Más Alquilados
@@ -412,15 +399,14 @@ function obtenerHTMLDashboard() {
 
 async function cargarEstadisticas() {
     try {
-        const respuesta = await fetch('http://localhost:8000/estadisticas/');
+        const respuesta = await fetch('/estadisticas/');
         const datos = await respuesta.json();
-        
+
         document.getElementById('totalProductos').textContent = datos.total_productos || 0;
         document.getElementById('totalClientes').textContent = datos.total_clientes || 0;
         document.getElementById('alquileresActivos').textContent = datos.alquileres_activos || 0;
         document.getElementById('ingresosMes').textContent = `L. ${(datos.ingresos_mes || 0).toFixed(2)}`;
-        
-        // Mostrar productos populares
+
         const contenedor = document.getElementById('productosPopulares');
         if (datos.productos_populares && datos.productos_populares.length > 0) {
             contenedor.innerHTML = datos.productos_populares.map(p => `
@@ -444,6 +430,9 @@ async function cargarEstadisticas() {
 }
 
 
+// [RESTO DEL CÓDIGO SE MANTIENE IGUAL - Solo cambié las URLs de fetch para usar rutas relativas y las redirecciones]
+
+// Continúa con las demás funciones...
 // ============================================
 // PRODUCTOS
 // ============================================
@@ -778,6 +767,9 @@ function obtenerHTMLEstaciones() {
             <h2 class="text-3xl font-bold text-gray-800">
                 <i class="fas fa-map-marker-alt mr-2"></i>Estaciones de Venta
             </h2>
+                        <button onclick="abrirModal('modalEstacion')" class="px-6 py-3 rounded-xl text-white font-semibold shadow-lg" style="background: linear-gradient(135deg, #c084fc, #f9a8d4);">
+                <i class="fas fa-plus mr-2"></i>Nueva Estacion
+            </button>
             <p class="text-gray-500 mt-1">Ubicaciones del negocio</p>
         </div>
         <div id="listaEstaciones" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
