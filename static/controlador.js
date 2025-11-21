@@ -393,7 +393,7 @@ async function cargarEstadisticas() {
                     <div class="flex items-center space-x-3">
                         <i class="fas fa-box text-2xl text-pink-400"></i>
                         <div>
-                            <p class="font-semibold text-gray-800">${p.Nombre}</p>
+                            <p class="font-semibold text-gray-800">${p.nombre}</p>
                             <p class="text-sm text-gray-500">L. ${p.Precio}/día</p>
                         </div>
                     </div>
@@ -576,7 +576,7 @@ function editarProducto(id) {
     const producto = productos.find(p => p.idProducto === id);
     if (!producto) return;
 
-    document.getElementById('nombreProducto').value = producto.Nombre;
+    document.getElementById('nombreProducto').value = producto.nombre;
     document.getElementById('disponiblesProducto').value = producto.Disponibles;
     document.getElementById('precioProducto').value = producto.Precio;
     document.getElementById('tipoProducto').value = producto.TipoProducto;
@@ -922,7 +922,7 @@ function renderizarPagos() {
                 </div>
             </div>
             <div class="text-right">
-                <p class="text-2xl font-bold text-green-600">L. ${parseFloat(p.Monto).toFixed(2)}</p>
+                <p class="text-2xl font-bold text-green-600">L. ${parseFloat(p.monto||0 ).toFixed(2)}</p>
             </div>
         </div>
     `).join('');
@@ -1146,8 +1146,8 @@ async function cargarReportes() {
 
         const productosConIngresos = productos.map(p => {
             const ingresosProducto = alquileres
-                .filter(a => a.ProductoNombre === p.Nombre)
-                .reduce((sum, a) => sum + parseFloat(a.TotalPagar || 0), 0);
+    .filter(a => a.ProductoNombre === p.nombre)
+    .reduce((sum, a) => sum + parseFloat(a.TotalPagar || 0), 0);
             return { ...p, ingresos: ingresosProducto };
         }).sort((a, b) => b.ingresos - a.ingresos).slice(0, 5);
 
@@ -1221,7 +1221,7 @@ async function cargarReportes() {
                             <td class="px-4 py-3 text-sm text-gray-800">${p.Cliente || 'N/A'}</td>
                             <td class="px-4 py-3 text-sm text-gray-600">${p.MetodoPago}</td>
                             <td class="px-4 py-3 text-sm text-gray-600">${new Date(p.FechaPago).toLocaleDateString('es-HN')}</td>
-                            <td class="px-4 py-3 text-sm text-right font-bold text-green-600">L. ${parseFloat(p.Monto).toFixed(2)}</td>
+                            <td class="px-4 py-3 text-sm text-right font-bold text-green-600">L. ${parseFloat(p.monto).toFixed(2)}</td>
                         </tr>
                     `).join('')}
                 </tbody>
@@ -1320,7 +1320,7 @@ function cargarProductosEnSelect() {
     const productosArrendamiento = productos.filter(p => p.TipoProducto === 'Arrendamiento' && p.Disponibles > 0);
 
     select.innerHTML = '<option value="">Seleccionar producto</option>' +
-        productosArrendamiento.map(p => `<option value="${p.idProducto}">${p.Nombre} - L. ${p.Precio}/día (${p.Disponibles} disponibles)</option>`).join('');
+        productosArrendamiento.map(p => `<option value="${p.idProducto}">${p.nombre} - L. ${p.Precio}/día (${p.Disponibles} disponibles)</option>`).join('');
 }
 
 function cargarClientesEnSelectPago() {

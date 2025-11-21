@@ -407,28 +407,51 @@ def listar_pagos(request):
 
 
 @csrf_exempt
+@csrf_exempt
 def registrar_pago(request):
     if request.method != 'POST':
-        return JsonResponse({'error': 'Metodo no permitido'}, status=405)
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
 
     try:
         data = json.loads(request.body)
+
+        # Validar campos requeridos
+        if not data.get('idCliente'):
+            return JsonResponse({'error': 'Cliente es requerido'}, status=400)
+
+        # Insertar transacción - CORREGIDO: usar parámetros correctamente
         query_transaccion = "INSERT INTO transacciones (idCliente, FechaTransaccion) VALUES (%s, NOW())"
         transaccion_id = ejecutar_insert(query_transaccion, [data.get('idCliente')])
 
+        # Insertar pago - CORREGIDO: asegurar que los valores sean correctos
         query_pago = """
-            INSERT INTO pagostransacciones (idTransaccion, idAlquiler, MontoTransaccion, MetodoPago)
-            VALUES (%s, %s, %s, %s)
-        """
-        params = [transaccion_id, data.get('idAlquiler'), data.get('monto'), data.get('metodoPago', 'Efectivo')]
-        ejecutar_insert(query_pago, params)
+                     INSERT INTO pagostransacciones
+                         (idTransaccion, idAlquiler, idCompra, MontoManual, MetodoPago)
+                     VALUES (%s, %s, %s, %s, %s) \
+                     """
 
-        return JsonResponse({'mensaje': 'Pago registrado exitosamente', 'id': transaccion_id}, status=201)
+        # Convertir valores a los tipos correctos
+        id_alquiler = data.get('idAlquiler')
+        id_compra = data.get('idCompra')
+        monto_manual = data.get('monto')
+
+        params = [
+            transaccion_id,
+            id_alquiler if id_alquiler else None,
+            id_compra if id_compra else None,
+            float(monto_manual) if monto_manual else None,  # Convertir a float si existe
+            data.get('metodoPago', 'Efectivo')
+        ]
+
+        pago_id = ejecutar_insert(query_pago, params)
+
+        return JsonResponse({
+            'mensaje': 'Pago registrado exitosamente',
+            'id': transaccion_id
+        }, status=201)
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
-
-
 @csrf_exempt
 def editar_pago(request, pago_id):
     if request.method != 'POST':
@@ -441,7 +464,7 @@ def editar_pago(request, pago_id):
             SET MontoTransaccion = %s, MetodoPago = %s
             WHERE idTransaccion = %s
         """
-        params = [data.get('monto'), data.get('metodoPago'), pago_id]
+        params = [data.get('montoTransaccion'), data.get('metodoPago'), pago_id]
         ejecutar_insert(query, params)
         return JsonResponse({'mensaje': 'Pago actualizado exitosamente'}, status=200)
 
