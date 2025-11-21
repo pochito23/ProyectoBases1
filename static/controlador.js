@@ -37,7 +37,7 @@ async function iniciarSesion(evento) {
     const password = document.getElementById('passwordInput').value;
 
     try {
-        const respuesta = await fetch('/login/', {
+        const respuesta = await fetch('/api/login/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ usuario, password })
@@ -73,7 +73,7 @@ async function registrarAdministrador(evento) {
     }
 
     try {
-        const respuesta = await fetch('/registrar/', {
+        const respuesta = await fetch('api/registrar/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ usuario, password, nombre, email })
