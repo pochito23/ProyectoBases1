@@ -18,21 +18,88 @@ def ejecutar_insert(query, params):
         return cursor.lastrowid
 
 
+# AUTENTICACIÓN
+@csrf_exempt
+def login_administrador(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+        usuario = data.get('usuario')
+        password = data.get('password')
+
+        query = """
+                SELECT idAdministrador, Usuario, Nombre, Email
+                FROM Administradores
+                WHERE Usuario = %s \
+                  AND Password = %s \
+                """
+        resultado = ejecutar_query(query, [usuario, password])
+
+        if resultado:
+            return JsonResponse({
+                'success': True,
+                'administrador': resultado[0]
+            })
+        else:
+            return JsonResponse({'success': False, 'error': 'Credenciales incorrectas'}, status=401)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+def registrar_administrador(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+
+        query = """
+                INSERT INTO Administradores (Usuario, Password, Nombre, Email)
+                VALUES (%s, %s, %s, %s) \
+                """
+        params = [
+            data.get('usuario'),
+            data.get('password'),
+            data.get('nombre'),
+            data.get('email')
+        ]
+
+        admin_id = ejecutar_insert(query, params)
+
+        return JsonResponse({
+            'success': True,
+            'mensaje': 'Administrador registrado exitosamente',
+            'id': admin_id
+        }, status=201)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
 # PRODUCTOS
 def listar_productos(request):
+    id_admin = request.GET.get('idAdministrador')
+    if not id_admin:
+        return JsonResponse({'error': 'ID de administrador requerido'}, status=400)
+
     query = """
             SELECT p.idProducto, \
                    p.Nombre, \
                    p.Disponibles, \
                    p.Precio, \
-                   p.Descripcion, \
+                   p.Descripcion,
                    p.TipoProducto, \
                    e.Nombre as EstacionVenta
             FROM Productos p
                      LEFT JOIN estaciones e ON p.idEstacionVenta = e.idEstacion
+            WHERE p.idAdministrador = %s
             ORDER BY p.Nombre \
             """
-    productos = ejecutar_query(query)
+    productos = ejecutar_query(query, [id_admin])
     return JsonResponse({'productos': productos}, safe=False)
 
 
@@ -44,13 +111,10 @@ def crear_producto(request):
     try:
         data = json.loads(request.body)
 
-        if not data.get('nombre') or not data.get('precio'):
-            return JsonResponse({'error': 'Faltan datos requeridos'}, status=400)
-
         query = """
                 INSERT INTO Productos
-                (Nombre, Disponibles, Precio, Descripcion, TipoProducto, idEstacionVenta)
-                VALUES (%s, %s, %s, %s, %s, %s) \
+                (Nombre, Disponibles, Precio, Descripcion, TipoProducto, idEstacionVenta, idAdministrador)
+                VALUES (%s, %s, %s, %s, %s, %s, %s) \
                 """
 
         params = [
@@ -59,7 +123,8 @@ def crear_producto(request):
             data.get('precio'),
             data.get('descripcion', ''),
             data.get('tipoProducto', 'Venta'),
-            data.get('idEstacion', None)
+            data.get('idEstacion', None),
+            data.get('idAdministrador')
         ]
 
         producto_id = ejecutar_insert(query, params)
@@ -69,8 +134,6 @@ def crear_producto(request):
             'id': producto_id
         }, status=201)
 
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'JSON inválido'}, status=400)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
@@ -91,6 +154,7 @@ def editar_producto(request, producto_id):
                     Descripcion  = %s, \
                     TipoProducto = %s
                 WHERE idProducto = %s \
+                  AND idAdministrador = %s \
                 """
 
         params = [
@@ -99,11 +163,11 @@ def editar_producto(request, producto_id):
             data.get('precio'),
             data.get('descripcion', ''),
             data.get('tipoProducto', 'Venta'),
-            producto_id
+            producto_id,
+            data.get('idAdministrador')
         ]
 
         ejecutar_insert(query, params)
-
         return JsonResponse({'mensaje': 'Producto actualizado exitosamente'}, status=200)
 
     except Exception as e:
@@ -115,10 +179,11 @@ def eliminar_producto(request, producto_id):
     if request.method != 'DELETE':
         return JsonResponse({'error': 'Método no permitido'}, status=405)
 
-    query = "DELETE FROM Productos WHERE idProducto = %s"
+    id_admin = request.GET.get('idAdministrador')
+    query = "DELETE FROM Productos WHERE idProducto = %s AND idAdministrador = %s"
 
     try:
-        ejecutar_insert(query, [producto_id])
+        ejecutar_insert(query, [producto_id, id_admin])
         return JsonResponse({'mensaje': 'Producto eliminado'}, status=200)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
@@ -126,10 +191,14 @@ def eliminar_producto(request, producto_id):
 
 # CLIENTES
 def listar_clientes(request):
+    id_admin = request.GET.get('idAdministrador')
+    if not id_admin:
+        return JsonResponse({'error': 'ID de administrador requerido'}, status=400)
+
     query = """
             SELECT c.idCliente, \
                    p.DNI, \
-                   CONCAT(p.Nombre, ' ', p.Apellido) as NombreCompleto, \
+                   CONCAT(p.Nombre, ' ', p.Apellido) as NombreCompleto,
                    p.Telefono, \
                    p.Email, \
                    p.Direccion, \
@@ -138,9 +207,10 @@ def listar_clientes(request):
                    p.FechaIngreso
             FROM Clientes c
                      INNER JOIN Personas p ON c.idPersona = p.idPersona
+            WHERE c.idAdministrador = %s
             ORDER BY p.FechaIngreso DESC \
             """
-    clientes = ejecutar_query(query)
+    clientes = ejecutar_query(query, [id_admin])
     return JsonResponse({'clientes': clientes}, safe=False)
 
 
@@ -171,15 +241,16 @@ def crear_cliente(request):
         persona_id = ejecutar_insert(query_persona, params_persona)
 
         query_cliente = """
-                        INSERT INTO Clientes (idCliente, idPersona, Tipo, EstadoPago)
-                        VALUES (%s, %s, %s, %s) \
+                        INSERT INTO Clientes (idCliente, idPersona, Tipo, EstadoPago, idAdministrador)
+                        VALUES (%s, %s, %s, %s, %s) \
                         """
 
         params_cliente = [
             persona_id,
             persona_id,
             data.get('tipo', 'Regular'),
-            data.get('estadoPago', 'Al día')
+            data.get('estadoPago', 'Al día'),
+            data.get('idAdministrador')
         ]
 
         ejecutar_insert(query_cliente, params_cliente)
@@ -207,6 +278,7 @@ def editar_cliente(request, cliente_id):
                 ON p.idPersona = c.idPersona
                     SET p.DNI = %s, p.Nombre = %s, p.Apellido = %s, p.Telefono = %s, p.Email = %s, p.Direccion = %s
                 WHERE c.idCliente = %s \
+                  AND c.idAdministrador = %s \
                 """
 
         params = [
@@ -216,11 +288,11 @@ def editar_cliente(request, cliente_id):
             data.get('telefono'),
             data.get('email'),
             data.get('direccion', ''),
-            cliente_id
+            cliente_id,
+            data.get('idAdministrador')
         ]
 
         ejecutar_insert(query, params)
-
         return JsonResponse({'mensaje': 'Cliente actualizado exitosamente'}, status=200)
 
     except Exception as e:
@@ -233,18 +305,22 @@ def eliminar_cliente(request, cliente_id):
         return JsonResponse({'error': 'Método no permitido'}, status=405)
 
     try:
-        # Primero obtener el idPersona
-        query_persona = "SELECT idPersona FROM Clientes WHERE idCliente = %s"
-        resultado = ejecutar_query(query_persona, [cliente_id])
+        id_admin = request.GET.get('idAdministrador')
+
+        query_persona = """
+                        SELECT idPersona \
+                        FROM Clientes
+                        WHERE idCliente = %s \
+                          AND idAdministrador = %s \
+                        """
+        resultado = ejecutar_query(query_persona, [cliente_id, id_admin])
 
         if resultado:
             id_persona = resultado[0]['idPersona']
 
-            # Eliminar cliente
             query_cliente = "DELETE FROM Clientes WHERE idCliente = %s"
             ejecutar_insert(query_cliente, [cliente_id])
 
-            # Eliminar persona
             query_persona_delete = "DELETE FROM Personas WHERE idPersona = %s"
             ejecutar_insert(query_persona_delete, [id_persona])
 
@@ -258,25 +334,32 @@ def eliminar_cliente(request, cliente_id):
 
 # ALQUILERES
 def listar_alquileres(request):
+    id_admin = request.GET.get('idAdministrador')
+    if not id_admin:
+        return JsonResponse({'error': 'ID de administrador requerido'}, status=400)
+
     query = """
             SELECT pa.idAlquiler, \
                    pa.FechaInicio, \
                    pa.FechaCorte, \
-                   pa.Estado, \
+                   pa.Estado,
                    pa.CantidadAlquilada, \
                    pa.PagoInicial, \
-                   pa.PagoDeposito, \
-                   p.Nombre                              as ProductoNombre, \
-                   CONCAT(per.Nombre, ' ', per.Apellido) as ClienteNombre, \
-                   p.Precio, \
+                   pa.PagoDeposito,
+                   pa.MontoAlquiler,
+                   p.Nombre                              as ProductoNombre,
+                   CONCAT(per.Nombre, ' ', per.Apellido) as ClienteNombre,
+                   p.Precio,
                    (pa.CantidadAlquilada * p.Precio)     as TotalPagar
             FROM ProductosArrendamiento_Clientes pa
-                     INNER JOIN Productos p ON pa.idProductoArrendado = p.idProducto
+                     INNER JOIN ProductosArrendamiento pra ON pa.idProductoArrendamiento = pra.idProductoArrendamiento
+                     INNER JOIN Productos p ON pra.idProducto = p.idProducto
                      INNER JOIN Clientes c ON pa.idCliente = c.idCliente
                      INNER JOIN Personas per ON c.idPersona = per.idPersona
+            WHERE pa.idAdministrador = %s
             ORDER BY pa.FechaInicio DESC \
             """
-    alquileres = ejecutar_query(query)
+    alquileres = ejecutar_query(query, [id_admin])
     return JsonResponse({'alquileres': alquileres}, safe=False)
 
 
@@ -288,11 +371,24 @@ def crear_alquiler(request):
     try:
         data = json.loads(request.body)
 
+        # Calcular días y monto
+        fecha_inicio = datetime.strptime(data.get('fechaInicio'), '%Y-%m-%d')
+        fecha_corte = datetime.strptime(data.get('fechaCorte'), '%Y-%m-%d')
+        dias = (fecha_corte - fecha_inicio).days
+
+        # Obtener precio del producto
+        query_precio = "SELECT Precio FROM Productos WHERE idProducto = %s"
+        resultado = ejecutar_query(query_precio, [data.get('idProducto')])
+        precio = float(resultado[0]['Precio']) if resultado else 0
+
+        monto_total = dias * precio * float(data.get('cantidad', 1))
+
         query = """
                 INSERT INTO ProductosArrendamiento_Clientes
-                (idCliente, idProductoArrendado, FechaInicio, FechaCorte,
-                 CantidadAlquilada, PagoInicial, PagoDeposito)
-                VALUES (%s, %s, %s, %s, %s, %s, %s) \
+                (idCliente, idProductoArrendamiento, FechaInicio, FechaCorte,
+                 CantidadAlquilada, PagoInicial, PagoDeposito, MontoAlquiler,
+                 Estado, idAdministrador)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'Activo', %s) \
                 """
 
         params = [
@@ -302,7 +398,9 @@ def crear_alquiler(request):
             data.get('fechaCorte'),
             data.get('cantidad', 1),
             data.get('pagoInicial', 0),
-            data.get('pagoDeposito', 0)
+            data.get('pagoDeposito', 0),
+            monto_total,
+            data.get('idAdministrador')
         ]
 
         alquiler_id = ejecutar_insert(query, params)
@@ -321,124 +419,40 @@ def eliminar_alquiler(request, alquiler_id):
     if request.method != 'DELETE':
         return JsonResponse({'error': 'Método no permitido'}, status=405)
 
-    query = "DELETE FROM ProductosArrendamiento_Clientes WHERE idAlquiler = %s"
-
-    try:
-        ejecutar_insert(query, [alquiler_id])
-        return JsonResponse({'mensaje': 'Alquiler eliminado'}, status=200)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
-
-
-# ESTADÍSTICAS
-def estadisticas_dashboard(request):
-    query_productos = "SELECT COUNT(*) as total FROM Productos"
-    total_productos = ejecutar_query(query_productos)[0]['total']
-
-    query_clientes = "SELECT COUNT(*) as total FROM Clientes"
-    total_clientes = ejecutar_query(query_clientes)[0]['total']
-
-    query_estados = """
-                    SELECT SUM(CASE WHEN Estado = 'Activo' THEN 1 ELSE 0 END)    as activos, \
-                           SUM(CASE WHEN Estado = 'Pendiente' THEN 1 ELSE 0 END) as pendientes, \
-                           SUM(CASE WHEN Estado = 'Realizado' THEN 1 ELSE 0 END) as realizados
-                    FROM ProductosArrendamiento_Clientes \
-                    """
-    estados = ejecutar_query(query_estados)[0]
-
-    query_ingresos = """
-                     SELECT SUM(Monto) as total
-                     FROM Pagos
-                     WHERE MONTH (FechaPago) = MONTH (CURRENT_DATE ()) \
-                     """
-    ingresos = ejecutar_query(query_ingresos)[0]['total'] or 0
-
-    query_populares = """
-                      SELECT p.idProducto, \
-                             p.Nombre, \
-                             p.Precio, \
-                             COUNT(pa.idAlquiler) as total_alquileres
-                      FROM Productos p
-                               LEFT JOIN ProductosArrendamiento_Clientes pa
-                                         ON p.idProducto = pa.idProductoArrendado
-                      GROUP BY p.idProducto
-                      ORDER BY total_alquileres DESC LIMIT 5 \
-                      """
-    productos_populares = ejecutar_query(query_populares)
-
-    return JsonResponse({
-        'total_productos': total_productos,
-        'total_clientes': total_clientes,
-        'alquileres_activos': estados['activos'] or 0,
-        'alquileres_pendientes': estados['pendientes'] or 0,
-        'alquileres_realizados': estados['realizados'] or 0,
-        'ingresos_mes': float(ingresos),
-        'productos_populares': productos_populares
-    })
-
-
-# ESTACIONES
-def listar_estaciones(request):
+    id_admin = request.GET.get('idAdministrador')
     query = """
-            SELECT idEstacion, \
-                   Nombre, \
-                   DescripcionEstacion
-            FROM estaciones
-            ORDER BY Nombre \
+            DELETE \
+            FROM ProductosArrendamiento_Clientes
+            WHERE idAlquiler = %s \
+              AND idAdministrador = %s \
             """
-    estaciones = ejecutar_query(query)
-    return JsonResponse({'estaciones': estaciones}, safe=False)
-
-
-@csrf_exempt
-def crear_estacion(request):
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Método no permitido'}, status=405)
 
     try:
-        data = json.loads(request.body)
-
-        if not data.get('nombre'):
-            return JsonResponse({'error': 'El nombre es requerido'}, status=400)
-
-        query = """
-                INSERT INTO estaciones
-                    (Nombre, DescripcionEstacion)
-                VALUES (%s, %s) \
-                """
-
-        params = [
-            data.get('nombre'),
-            data.get('descripcion', '')
-        ]
-
-        estacion_id = ejecutar_insert(query, params)
-
-        return JsonResponse({
-            'mensaje': 'Estación creada exitosamente',
-            'id': estacion_id
-        }, status=201)
-
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'JSON inválido'}, status=400)
+        ejecutar_insert(query, [alquiler_id, id_admin])
+        return JsonResponse({'mensaje': 'Alquiler eliminado'}, status=200)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
 
 # PAGOS
 def listar_pagos(request):
+    id_admin = request.GET.get('idAdministrador')
+    if not id_admin:
+        return JsonResponse({'error': 'ID de administrador requerido'}, status=400)
+
     query = """
-            SELECT p.idPago, \
-                   p.Monto, \
-                   p.FechaPago, \
-                   p.MetodoPago, \
-                   CONCAT(per.Nombre, ' ', per.Apellido) as Cliente
-            FROM Pagos p
-                     LEFT JOIN Clientes c ON p.idCliente = c.idCliente
-                     LEFT JOIN Personas per ON c.idPersona = per.idPersona
-            ORDER BY p.FechaPago DESC \
+            SELECT t.idTransaccion, \
+                   t.MontoTotal                      as Monto, \
+                   t.FechaTransaccion                as FechaPago,
+                   t.MetodoPago, \
+                   CONCAT(p.Nombre, ' ', p.Apellido) as Cliente
+            FROM Transacciones t
+                     LEFT JOIN Clientes c ON t.idCliente = c.idCliente
+                     LEFT JOIN Personas p ON c.idPersona = p.idPersona
+            WHERE t.idAdministrador = %s
+            ORDER BY t.FechaTransaccion DESC \
             """
-    pagos = ejecutar_query(query)
+    pagos = ejecutar_query(query, [id_admin])
     return JsonResponse({'pagos': pagos}, safe=False)
 
 
@@ -451,31 +465,138 @@ def registrar_pago(request):
         data = json.loads(request.body)
 
         query = """
-                INSERT INTO Pagos
-                    (idPago, idCliente, idAlquiler, Monto, MetodoPago)
+                INSERT INTO Transacciones
+                    (idCliente, idAdministrador, idAlquiler, MontoTotal, MetodoPago)
                 VALUES (%s, %s, %s, %s, %s) \
                 """
 
-        query_max_id = "SELECT IFNULL(MAX(idPago), 0) + 1 as nuevo_id FROM Pagos"
-        nuevo_id = ejecutar_query(query_max_id)[0]['nuevo_id']
-
         params = [
-            nuevo_id,
             data.get('idCliente'),
+            data.get('idAdministrador'),
             data.get('idAlquiler'),
             data.get('monto'),
             data.get('metodoPago', 'Efectivo')
         ]
 
-        ejecutar_insert(query, params)
+        transaccion_id = ejecutar_insert(query, params)
 
         return JsonResponse({
             'mensaje': 'Pago registrado exitosamente',
-            'id': nuevo_id
+            'id': transaccion_id
         }, status=201)
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
+# ESTACIONES
+def listar_estaciones(request):
+    id_admin = request.GET.get('idAdministrador')
+    if not id_admin:
+        return JsonResponse({'error': 'ID de administrador requerido'}, status=400)
+
+    query = """
+            SELECT idEstacion, Nombre, DescripcionEstacion
+            FROM estaciones
+            WHERE idAdministrador = %s
+            ORDER BY Nombre \
+            """
+    estaciones = ejecutar_query(query, [id_admin])
+    return JsonResponse({'estaciones': estaciones}, safe=False)
+
+
+@csrf_exempt
+def crear_estacion(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+
+        query = """
+                INSERT INTO estaciones
+                    (Nombre, DescripcionEstacion, idAdministrador)
+                VALUES (%s, %s, %s) \
+                """
+
+        params = [
+            data.get('nombre'),
+            data.get('descripcion', ''),
+            data.get('idAdministrador')
+        ]
+
+        estacion_id = ejecutar_insert(query, params)
+
+        return JsonResponse({
+            'mensaje': 'Estación creada exitosamente',
+            'id': estacion_id
+        }, status=201)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+# ESTADÍSTICAS
+def estadisticas_dashboard(request):
+    id_admin = request.GET.get('idAdministrador')
+    if not id_admin:
+        return JsonResponse({'error': 'ID de administrador requerido'}, status=400)
+
+    query_productos = """
+                      SELECT COUNT(*) as total \
+                      FROM Productos \
+                      WHERE idAdministrador = %s \
+                      """
+    total_productos = ejecutar_query(query_productos, [id_admin])[0]['total']
+
+    query_clientes = """
+                     SELECT COUNT(*) as total \
+                     FROM Clientes \
+                     WHERE idAdministrador = %s \
+                     """
+    total_clientes = ejecutar_query(query_clientes, [id_admin])[0]['total']
+
+    query_estados = """
+                    SELECT SUM(CASE WHEN Estado = 'Activo' THEN 1 ELSE 0 END)    as activos, \
+                           SUM(CASE WHEN Estado = 'Pendiente' THEN 1 ELSE 0 END) as pendientes, \
+                           SUM(CASE WHEN Estado = 'Realizado' THEN 1 ELSE 0 END) as realizados
+                    FROM ProductosArrendamiento_Clientes
+                    WHERE idAdministrador = %s \
+                    """
+    estados = ejecutar_query(query_estados, [id_admin])[0]
+
+    query_ingresos = """
+                     SELECT SUM(MontoTotal) as total
+                     FROM Transacciones
+                     WHERE MONTH (FechaTransaccion) = MONTH (CURRENT_DATE ())
+                       AND idAdministrador = %s \
+                     """
+    ingresos = ejecutar_query(query_ingresos, [id_admin])[0]['total'] or 0
+
+    query_populares = """
+                      SELECT p.idProducto, \
+                             p.Nombre, \
+                             p.Precio,
+                             COUNT(pa.idAlquiler) as total_alquileres
+                      FROM Productos p
+                               LEFT JOIN ProductosArrendamiento pra ON p.idProducto = pra.idProducto
+                               LEFT JOIN ProductosArrendamiento_Clientes pa \
+                                         ON pra.idProductoArrendamiento = pa.idProductoArrendamiento
+                      WHERE p.idAdministrador = %s
+                      GROUP BY p.idProducto
+                      ORDER BY total_alquileres DESC LIMIT 5 \
+                      """
+    productos_populares = ejecutar_query(query_populares, [id_admin])
+
+    return JsonResponse({
+        'total_productos': total_productos,
+        'total_clientes': total_clientes,
+        'alquileres_activos': estados['activos'] or 0,
+        'alquileres_pendientes': estados['pendientes'] or 0,
+        'alquileres_realizados': estados['realizados'] or 0,
+        'ingresos_mes': float(ingresos),
+        'productos_populares': productos_populares
+    })
 
 
 # PÁGINAS HTML

@@ -2,11 +2,6 @@
 let usuarioActual = null;
 let seccionActual = 'dashboard';
 
-let administradores = [
-    { usuario: 'admin', password: 'admin123', nombre: 'Administrador Principal', email: 'admin@sistema.com' },
-    { usuario: 'kevin', password: 'kevin123', nombre: 'Kevin Sanchez', email: 'kevin@sistema.com' }
-];
-
 let productos = [];
 let clientes = [];
 let alquileres = [];
@@ -15,39 +10,12 @@ let estaciones = [];
 
 // INICIALIZACIÓN
 document.addEventListener('DOMContentLoaded', function() {
-    cargarAdministradores();
-    
     if (window.location.pathname.includes('dashboard')) {
         verificarSesion();
     } else if (window.location.pathname.includes('login') || window.location.pathname === '/') {
         configurarLogin();
     }
 });
-
-// GESTIÓN DE ADMINISTRADORES
-function cargarAdministradores() {
-    const adminsGuardados = localStorage.getItem('administradores');
-    if (adminsGuardados) {
-        administradores = JSON.parse(adminsGuardados);
-    }
-}
-
-function guardarAdministradores() {
-    localStorage.setItem('administradores', JSON.stringify(administradores));
-}
-
-function abrirModalRegistro() {
-    const modal = document.getElementById('modalRegistro');
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-}
-
-function cerrarModalRegistro() {
-    const modal = document.getElementById('modalRegistro');
-    modal.classList.add('hidden');
-    modal.classList.remove('flex');
-    document.getElementById('formularioRegistro').reset();
-}
 
 // AUTENTICACIÓN
 function configurarLogin() {
@@ -62,24 +30,35 @@ function configurarLogin() {
     }
 }
 
-function iniciarSesion(evento) {
+async function iniciarSesion(evento) {
     evento.preventDefault();
 
     const usuario = document.getElementById('usuarioInput').value;
     const password = document.getElementById('passwordInput').value;
 
-    const admin = administradores.find(a => a.usuario === usuario && a.password === password);
+    try {
+        const respuesta = await fetch('/login/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ usuario, password })
+        });
 
-    if (admin) {
-        usuarioActual = admin;
-        localStorage.setItem('usuarioActual', JSON.stringify(admin));
-        window.location.href = '/dashboard/';
-    } else {
-        mostrarError('Usuario o contraseña incorrectos');
+        const datos = await respuesta.json();
+
+        if (datos.success) {
+            usuarioActual = datos.administrador;
+            localStorage.setItem('usuarioActual', JSON.stringify(datos.administrador));
+            window.location.href = '/dashboard/';
+        } else {
+            mostrarError('Usuario o contraseña incorrectos');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarError('Error de conexión');
     }
 }
 
-function registrarAdministrador(evento) {
+async function registrarAdministrador(evento) {
     evento.preventDefault();
 
     const nombre = document.getElementById('nombreRegistro').value;
@@ -93,22 +72,37 @@ function registrarAdministrador(evento) {
         return;
     }
 
-    if (administradores.some(a => a.usuario === usuario)) {
-        alert('El usuario ya existe');
-        return;
+    try {
+        const respuesta = await fetch('/registrar/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ usuario, password, nombre, email })
+        });
+
+        if (respuesta.ok) {
+            alert('Administrador registrado exitosamente. Ya puedes iniciar sesión.');
+            cerrarModalRegistro();
+        } else {
+            const error = await respuesta.json();
+            alert('Error: ' + error.error);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error de conexión');
     }
+}
 
-    if (administradores.some(a => a.email === email)) {
-        alert('El correo electrónico ya está registrado');
-        return;
-    }
+function abrirModalRegistro() {
+    const modal = document.getElementById('modalRegistro');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
 
-    const nuevoAdmin = { usuario, password, nombre, email };
-    administradores.push(nuevoAdmin);
-    guardarAdministradores();
-
-    alert('Administrador registrado exitosamente. Ya puedes iniciar sesión.');
-    cerrarModalRegistro();
+function cerrarModalRegistro() {
+    const modal = document.getElementById('modalRegistro');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    document.getElementById('formularioRegistro').reset();
 }
 
 function mostrarError(mensaje) {
@@ -143,15 +137,15 @@ function cerrarSesion() {
 
 // INICIALIZACIÓN DEL DASHBOARD
 function inicializarDashboard() {
-    document.getElementById('nombreUsuario').textContent = usuarioActual.usuario;
-    document.getElementById('emailUsuario').textContent = usuarioActual.email;
-    document.getElementById('inicialUsuario').textContent = usuarioActual.nombre.charAt(0).toUpperCase();
+    document.getElementById('nombreUsuario').textContent = usuarioActual.Usuario;
+    document.getElementById('emailUsuario').textContent = usuarioActual.Email;
+    document.getElementById('inicialUsuario').textContent = usuarioActual.Nombre.charAt(0).toUpperCase();
 
     cargarDatosIniciales();
     mostrarSeccion('dashboard');
 }
 
-// CARGA DE DATOS DESDE EL BACKEND
+// CARGA DE DATOS
 async function cargarDatosIniciales() {
     await Promise.all([
         cargarProductos(),
@@ -163,7 +157,7 @@ async function cargarDatosIniciales() {
 
 async function cargarProductos() {
     try {
-        const respuesta = await fetch('/productos/');
+        const respuesta = await fetch(`/productos/?idAdministrador=${usuarioActual.idAdministrador}`);
         const datos = await respuesta.json();
         productos = datos.productos || [];
     } catch (error) {
@@ -174,7 +168,7 @@ async function cargarProductos() {
 
 async function cargarClientes() {
     try {
-        const respuesta = await fetch('/clientes/');
+        const respuesta = await fetch(`/clientes/?idAdministrador=${usuarioActual.idAdministrador}`);
         const datos = await respuesta.json();
         clientes = datos.clientes || [];
     } catch (error) {
@@ -185,7 +179,7 @@ async function cargarClientes() {
 
 async function cargarAlquileres() {
     try {
-        const respuesta = await fetch('/alquileres/');
+        const respuesta = await fetch(`/alquileres/?idAdministrador=${usuarioActual.idAdministrador}`);
         const datos = await respuesta.json();
         alquileres = datos.alquileres || [];
     } catch (error) {
@@ -196,7 +190,7 @@ async function cargarAlquileres() {
 
 async function cargarEstaciones() {
     try {
-        const respuesta = await fetch('/estaciones/');
+        const respuesta = await fetch(`/estaciones/?idAdministrador=${usuarioActual.idAdministrador}`);
         const datos = await respuesta.json();
         estaciones = datos.estaciones || [];
     } catch (error) {
@@ -207,7 +201,7 @@ async function cargarEstaciones() {
 
 async function cargarPagos() {
     try {
-        const respuesta = await fetch('/pagos/');
+        const respuesta = await fetch(`/pagos/?idAdministrador=${usuarioActual.idAdministrador}`);
         const datos = await respuesta.json();
         pagos = datos.pagos || [];
     } catch (error) {
@@ -280,7 +274,7 @@ function alternarMenu() {
     }
 }
 
-// DASHBOARD PRINCIPAL
+// DASHBOARD
 function obtenerHTMLDashboard() {
     return `
         <div class="flex justify-between items-center mb-8">
@@ -290,7 +284,7 @@ function obtenerHTMLDashboard() {
                 </button>
                 <div>
                     <h2 class="text-3xl font-bold text-gray-800">Panel Principal</h2>
-                    <p class="text-gray-500 mt-1">Bienvenido de vuelta, ${usuarioActual.nombre}</p>
+                    <p class="text-gray-500 mt-1">Bienvenido, ${usuarioActual.Nombre}</p>
                 </div>
             </div>
         </div>
@@ -358,7 +352,6 @@ function obtenerHTMLDashboard() {
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <!-- Alquileres de Hoy -->
             <div class="bg-white rounded-2xl p-6 shadow-lg">
                 <h3 class="text-xl font-bold text-gray-800 mb-4">
                     <i class="fas fa-calendar-day text-blue-500 mr-2"></i>Alquileres de Hoy
@@ -366,7 +359,6 @@ function obtenerHTMLDashboard() {
                 <div id="alquileresHoy" class="space-y-3"></div>
             </div>
 
-            <!-- Calendario -->
             <div class="bg-white rounded-2xl p-6 shadow-lg">
                 <h3 class="text-xl font-bold text-gray-800 mb-4">
                     <i class="fas fa-calendar-alt text-purple-500 mr-2"></i>Calendario
@@ -386,7 +378,7 @@ function obtenerHTMLDashboard() {
 
 async function cargarEstadisticas() {
     try {
-        const respuesta = await fetch('/estadisticas/');
+        const respuesta = await fetch(`/estadisticas/?idAdministrador=${usuarioActual.idAdministrador}`);
         const datos = await respuesta.json();
 
         document.getElementById('totalProductos').textContent = datos.total_productos || 0;
@@ -418,11 +410,10 @@ async function cargarEstadisticas() {
     }
 }
 
-// ALQUILERES DE HOY
 async function cargarAlquileresHoy() {
     const hoy = new Date().toISOString().split('T')[0];
     const alquileresHoy = alquileres.filter(a => a.FechaInicio === hoy || (a.FechaInicio <= hoy && a.FechaCorte >= hoy));
-    
+
     const contenedor = document.getElementById('alquileresHoy');
     if (alquileresHoy.length === 0) {
         contenedor.innerHTML = '<p class="text-gray-500 text-center py-4">No hay alquileres para hoy</p>';
@@ -443,20 +434,19 @@ async function cargarAlquileresHoy() {
     `).join('');
 }
 
-// CALENDARIO
 function generarCalendario() {
     const fecha = new Date();
     const año = fecha.getFullYear();
     const mes = fecha.getMonth();
-    
+
     const primerDia = new Date(año, mes, 1);
     const ultimoDia = new Date(año, mes + 1, 0);
     const diasMes = ultimoDia.getDate();
     const diaSemanaInicio = primerDia.getDay();
-    
+
     const nombresMeses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
     const nombresDias = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
-    
+
     let html = `
         <div class="mb-4">
             <h4 class="text-center font-bold text-lg text-gray-800">${nombresMeses[mes]} ${año}</h4>
@@ -466,13 +456,11 @@ function generarCalendario() {
         </div>
         <div class="grid grid-cols-7 gap-2">
     `;
-    
-    // Días vacíos antes del primer día
+
     for (let i = 0; i < diaSemanaInicio; i++) {
         html += '<div></div>';
     }
-    
-    // Días del mes
+
     const hoy = fecha.getDate();
     for (let dia = 1; dia <= diasMes; dia++) {
         const esHoy = dia === hoy;
@@ -482,9 +470,8 @@ function generarCalendario() {
             </div>
         `;
     }
-    
+
     html += '</div>';
-    
     document.getElementById('calendarioMensual').innerHTML = html;
 }
 
@@ -494,7 +481,7 @@ function obtenerHTMLProductos() {
         <div class="mb-6 flex justify-between items-center">
             <div>
                 <h2 class="text-3xl font-bold text-gray-800">
-                    <i class="fas fa-box mr-2"></i>Gestión de Productos
+                    <i class="fas fa-box mr-2"></i>Productos
                 </h2>
                 <p class="text-gray-500 mt-1">Administra tu inventario</p>
             </div>
@@ -508,12 +495,12 @@ function obtenerHTMLProductos() {
 
 function renderizarProductos() {
     const contenedor = document.getElementById('listaProductos');
-    
+
     if (productos.length === 0) {
         contenedor.innerHTML = '<p class="text-gray-500 col-span-full text-center py-8">No hay productos registrados</p>';
         return;
     }
-    
+
     contenedor.innerHTML = productos.map(p => `
         <div class="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all">
             <div class="flex justify-between items-start mb-4">
@@ -550,25 +537,26 @@ function renderizarProductos() {
 
 async function guardarProducto(evento) {
     evento.preventDefault();
-    
+
     const datos = {
         nombre: document.getElementById('nombreProducto').value,
         disponibles: parseInt(document.getElementById('disponiblesProducto').value),
         precio: parseFloat(document.getElementById('precioProducto').value),
         tipoProducto: document.getElementById('tipoProducto').value,
-        descripcion: document.getElementById('descripcionProducto').value
+        descripcion: document.getElementById('descripcionProducto').value,
+        idAdministrador: usuarioActual.idAdministrador
     };
-    
+
     const idProducto = document.getElementById('idProductoEditar')?.value;
     const url = idProducto ? `/productos/editar/${idProducto}/` : '/productos/crear/';
-    
+
     try {
         const respuesta = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(datos)
         });
-        
+
         if (respuesta.ok) {
             mostrarNotificacion(idProducto ? 'Producto actualizado exitosamente' : 'Producto agregado exitosamente', 'success');
             cerrarModal('modalProducto');
@@ -594,7 +582,6 @@ function editarProducto(id) {
     document.getElementById('tipoProducto').value = producto.TipoProducto;
     document.getElementById('descripcionProducto').value = producto.Descripcion || '';
 
-    // Agregar campo oculto con el ID
     let inputId = document.getElementById('idProductoEditar');
     if (!inputId) {
         inputId = document.createElement('input');
@@ -612,7 +599,7 @@ async function eliminarProducto(id) {
     if (!confirm('¿Estás seguro de eliminar este producto?')) return;
 
     try {
-        const respuesta = await fetch(`/productos/eliminar/${id}/`, {
+        const respuesta = await fetch(`/productos/eliminar/${id}/?idAdministrador=${usuarioActual.idAdministrador}`, {
             method: 'DELETE'
         });
 
@@ -636,7 +623,7 @@ function obtenerHTMLClientes() {
         <div class="mb-6 flex justify-between items-center">
             <div>
                 <h2 class="text-3xl font-bold text-gray-800">
-                    <i class="fas fa-users mr-2"></i>Gestión de Clientes
+                    <i class="fas fa-users mr-2"></i>Clientes
                 </h2>
                 <p class="text-gray-500 mt-1">Administra tu base de clientes</p>
             </div>
@@ -650,12 +637,12 @@ function obtenerHTMLClientes() {
 
 function renderizarClientes() {
     const contenedor = document.getElementById('listaClientes');
-    
+
     if (clientes.length === 0) {
         contenedor.innerHTML = '<p class="text-gray-500 col-span-full text-center py-8">No hay clientes registrados</p>';
         return;
     }
-    
+
     contenedor.innerHTML = clientes.map(c => `
         <div class="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all">
             <div class="flex items-center space-x-4 mb-4">
@@ -686,26 +673,27 @@ function renderizarClientes() {
 
 async function guardarCliente(evento) {
     evento.preventDefault();
-    
+
     const datos = {
         dni: document.getElementById('dniCliente').value,
         nombre: document.getElementById('nombreCliente').value,
         apellido: document.getElementById('apellidoCliente').value,
         telefono: document.getElementById('telefonoCliente').value,
         email: document.getElementById('emailCliente').value,
-        direccion: document.getElementById('direccionCliente').value
+        direccion: document.getElementById('direccionCliente').value,
+        idAdministrador: usuarioActual.idAdministrador
     };
-    
+
     const idCliente = document.getElementById('idClienteEditar')?.value;
     const url = idCliente ? `/clientes/editar/${idCliente}/` : '/clientes/crear/';
-    
+
     try {
         const respuesta = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(datos)
         });
-        
+
         if (respuesta.ok) {
             mostrarNotificacion(idCliente ? 'Cliente actualizado exitosamente' : 'Cliente agregado exitosamente', 'success');
             cerrarModal('modalCliente');
@@ -750,7 +738,7 @@ async function eliminarCliente(id) {
     if (!confirm('¿Estás seguro de eliminar este cliente?')) return;
 
     try {
-        const respuesta = await fetch(`/clientes/eliminar/${id}/`, {
+        const respuesta = await fetch(`/clientes/eliminar/${id}/?idAdministrador=${usuarioActual.idAdministrador}`, {
             method: 'DELETE'
         });
 
@@ -774,7 +762,7 @@ function obtenerHTMLAlquileres() {
         <div class="mb-6 flex justify-between items-center">
             <div>
                 <h2 class="text-3xl font-bold text-gray-800">
-                    <i class="fas fa-calendar-check mr-2"></i>Gestión de Alquileres
+                    <i class="fas fa-calendar-check mr-2"></i>Alquileres
                 </h2>
                 <p class="text-gray-500 mt-1">Administra todos los alquileres</p>
             </div>
@@ -790,19 +778,19 @@ function obtenerHTMLAlquileres() {
 
 function renderizarAlquileres() {
     const contenedor = document.getElementById('listaAlquileres');
-    
+
     if (alquileres.length === 0) {
         contenedor.innerHTML = '<p class="text-gray-500 text-center py-8">No hay alquileres registrados</p>';
         return;
     }
-    
+
     contenedor.innerHTML = alquileres.map(a => {
         const colorEstado = {
             'Activo': 'bg-green-100 text-green-700',
             'Pendiente': 'bg-yellow-100 text-yellow-700',
             'Realizado': 'bg-gray-100 text-gray-700'
         }[a.Estado] || 'bg-gray-100 text-gray-700';
-        
+
         return `
             <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all">
                 <div class="flex items-center space-x-4 flex-1">
@@ -817,7 +805,7 @@ function renderizarAlquileres() {
                 </div>
                 <div class="text-right mr-4">
                     <span class="px-3 py-1 rounded-full text-xs font-medium ${colorEstado}">${a.Estado}</span>
-                    <p class="text-sm text-gray-600 mt-2">Total: <strong>L. ${a.TotalPagar}</strong></p>
+                    <p class="text-sm text-gray-600 mt-2">Total: <strong>L. ${parseFloat(a.TotalPagar || 0).toFixed(2)}</strong></p>
                 </div>
                 <div class="flex gap-2">
                     <button onclick="eliminarAlquiler(${a.idAlquiler})" class="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all text-sm">
@@ -831,7 +819,7 @@ function renderizarAlquileres() {
 
 async function guardarAlquiler(evento) {
     evento.preventDefault();
-    
+
     const datos = {
         idCliente: parseInt(document.getElementById('clienteAlquiler').value),
         idProducto: parseInt(document.getElementById('productoAlquiler').value),
@@ -839,9 +827,10 @@ async function guardarAlquiler(evento) {
         fechaCorte: document.getElementById('fechaFinAlquiler').value,
         cantidad: parseInt(document.getElementById('cantidadAlquiler').value),
         pagoInicial: parseFloat(document.getElementById('pagoInicialAlquiler').value),
-        pagoDeposito: parseFloat(document.getElementById('depositoAlquiler').value)
+        pagoDeposito: parseFloat(document.getElementById('depositoAlquiler').value),
+        idAdministrador: usuarioActual.idAdministrador
     };
-    
+
     try {
         const respuesta = await fetch('/alquileres/crear/', {
             method: 'POST',
@@ -871,7 +860,7 @@ async function eliminarAlquiler(id) {
     if (!confirm('¿Estás seguro de eliminar este alquiler?')) return;
 
     try {
-        const respuesta = await fetch(`/alquileres/eliminar/${id}/`, {
+        const respuesta = await fetch(`/alquileres/eliminar/${id}/?idAdministrador=${usuarioActual.idAdministrador}`, {
             method: 'DELETE'
         });
 
@@ -895,11 +884,16 @@ async function eliminarAlquiler(id) {
 // PAGOS
 function obtenerHTMLPagos() {
     return `
-        <div class="mb-6">
-            <h2 class="text-3xl font-bold text-gray-800">
-                <i class="fas fa-dollar-sign mr-2"></i>Gestión de Pagos
-            </h2>
-            <p class="text-gray-500 mt-1">Historial de transacciones</p>
+        <div class="mb-6 flex justify-between items-center">
+            <div>
+                <h2 class="text-3xl font-bold text-gray-800">
+                    <i class="fas fa-dollar-sign mr-2"></i>Pagos
+                </h2>
+                <p class="text-gray-500 mt-1">Historial de transacciones</p>
+            </div>
+            <button onclick="abrirModal('modalPago')" class="px-6 py-3 rounded-xl text-white font-semibold shadow-lg" style="background: linear-gradient(135deg, #34d399, #10b981);">
+                <i class="fas fa-plus mr-2"></i>Registrar Pago
+            </button>
         </div>
         <div class="bg-white rounded-2xl p-6 shadow-lg">
             <div id="listaPagos" class="space-y-4"></div>
@@ -934,13 +928,46 @@ function renderizarPagos() {
     `).join('');
 }
 
+async function guardarPago(evento) {
+    evento.preventDefault();
+
+    const datos = {
+        idCliente: parseInt(document.getElementById('clientePago').value),
+        idAlquiler: parseInt(document.getElementById('alquilerPago').value) || null,
+        monto: parseFloat(document.getElementById('montoPago').value),
+        metodoPago: document.getElementById('metodoPago').value,
+        idAdministrador: usuarioActual.idAdministrador
+    };
+
+    try {
+        const respuesta = await fetch('/pagos/registrar/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(datos)
+        });
+
+        if (respuesta.ok) {
+            mostrarNotificacion('Pago registrado exitosamente', 'success');
+            cerrarModal('modalPago');
+            await cargarPagos();
+            if (seccionActual === 'pagos') renderizarPagos();
+            if (seccionActual === 'dashboard') cargarEstadisticas();
+        } else {
+            mostrarNotificacion('Error al registrar pago', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarNotificacion('Error de conexión', 'error');
+    }
+}
+
 // ESTACIONES
 function obtenerHTMLEstaciones() {
     return `
         <div class="mb-6 flex justify-between items-center">
             <div>
                 <h2 class="text-3xl font-bold text-gray-800">
-                    <i class="fas fa-map-marker-alt mr-2"></i>Estaciones de Venta
+                    <i class="fas fa-map-marker-alt mr-2"></i>Estaciones
                 </h2>
                 <p class="text-gray-500 mt-1">Ubicaciones del negocio</p>
             </div>
@@ -977,19 +1004,20 @@ function renderizarEstaciones() {
 
 async function guardarEstacion(evento) {
     evento.preventDefault();
-    
+
     const datos = {
         nombre: document.getElementById('nombreEstacion').value,
-        descripcion: document.getElementById('descripcionEstacion').value
+        descripcion: document.getElementById('descripcionEstacion').value,
+        idAdministrador: usuarioActual.idAdministrador
     };
-    
+
     try {
         const respuesta = await fetch('/estaciones/crear/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(datos)
         });
-        
+
         if (respuesta.ok) {
             mostrarNotificacion('Estación agregada exitosamente', 'success');
             cerrarModal('modalEstacion');
@@ -1009,7 +1037,7 @@ function obtenerHTMLReportes() {
     return `
         <div class="mb-6">
             <h2 class="text-3xl font-bold text-gray-800">
-                <i class="fas fa-chart-bar mr-2"></i>Reportes y Estadísticas
+                <i class="fas fa-chart-bar mr-2"></i>Reportes
             </h2>
             <p class="text-gray-500 mt-1">Análisis detallado del negocio</p>
         </div>
@@ -1086,7 +1114,8 @@ function obtenerHTMLReportes() {
 
 async function cargarReportes() {
     try {
-        // Calcular estadísticas
+        await cargarPagos();
+
         const ingresoTotal = pagos.reduce((sum, p) => sum + parseFloat(p.Monto || 0), 0);
         const totalAlquileres = alquileres.length;
         const promedioAlquiler = totalAlquileres > 0 ? ingresoTotal / totalAlquileres : 0;
@@ -1095,7 +1124,6 @@ async function cargarReportes() {
         document.getElementById('reporteAlquileresTotal').textContent = totalAlquileres;
         document.getElementById('reportePromedioAlquiler').textContent = `L. ${promedioAlquiler.toFixed(2)}`;
 
-        // Top 5 Clientes
         const clientesConAlquileres = clientes.map(c => ({
             ...c,
             totalAlquileres: alquileres.filter(a => a.ClienteNombre === c.NombreCompleto).length
@@ -1116,7 +1144,6 @@ async function cargarReportes() {
             </div>
         `).join('') || '<p class="text-gray-500 text-center">No hay datos</p>';
 
-        // Productos Más Rentables
         const productosConIngresos = productos.map(p => {
             const ingresosProducto = alquileres
                 .filter(a => a.ProductoNombre === p.Nombre)
@@ -1137,7 +1164,6 @@ async function cargarReportes() {
             </div>
         `).join('') || '<p class="text-gray-500 text-center">No hay datos</p>';
 
-        // Estado de Alquileres (Gráfico de barras simple)
         const estados = {
             'Activo': alquileres.filter(a => a.Estado === 'Activo').length,
             'Pendiente': alquileres.filter(a => a.Estado === 'Pendiente').length,
@@ -1161,10 +1187,9 @@ async function cargarReportes() {
             </div>
         `;
 
-        // Ingresos por Mes (últimos 6 meses)
         const mesesIngresos = calcularIngresosMensuales();
         const maxIngreso = Math.max(...mesesIngresos.map(m => m.ingreso), 1);
-        
+
         document.getElementById('reporteIngresosMes').innerHTML = `
             <div class="flex items-end justify-between h-48 space-x-2">
                 ${mesesIngresos.map(m => `
@@ -1179,7 +1204,6 @@ async function cargarReportes() {
             </div>
         `;
 
-        // Pagos Recientes
         const pagosRecientes = pagos.slice(0, 10);
         document.getElementById('reportePagosRecientes').innerHTML = pagosRecientes.length > 0 ? `
             <table class="w-full">
@@ -1244,6 +1268,11 @@ function abrirModal(idModal) {
         cargarClientesEnSelect();
         cargarProductosEnSelect();
     }
+
+    if (idModal === 'modalPago') {
+        cargarClientesEnSelectPago();
+        cargarAlquileresEnSelect();
+    }
 }
 
 function cerrarModal(idModal) {
@@ -1256,20 +1285,19 @@ function cerrarModal(idModal) {
         'modalProducto': 'formularioProducto',
         'modalCliente': 'formularioCliente',
         'modalAlquiler': 'formularioAlquiler',
-        'modalEstacion': 'formularioEstacion'
+        'modalEstacion': 'formularioEstacion',
+        'modalPago': 'formularioPago'
     };
 
     const formulario = document.getElementById(formularios[idModal]);
     if (formulario) formulario.reset();
 
-    // Limpiar campos ocultos de edición
     const inputIdProducto = document.getElementById('idProductoEditar');
     if (inputIdProducto) inputIdProducto.remove();
-    
+
     const inputIdCliente = document.getElementById('idClienteEditar');
     if (inputIdCliente) inputIdCliente.remove();
 
-    // Restaurar títulos originales
     if (idModal === 'modalProducto') {
         document.querySelector('#modalProducto h3').textContent = 'Agregar Nuevo Producto';
     } else if (idModal === 'modalCliente') {
@@ -1295,8 +1323,26 @@ function cargarProductosEnSelect() {
         productosArrendamiento.map(p => `<option value="${p.idProducto}">${p.Nombre} - L. ${p.Precio}/día (${p.Disponibles} disponibles)</option>`).join('');
 }
 
+function cargarClientesEnSelectPago() {
+    const select = document.getElementById('clientePago');
+    if (!select) return;
+
+    select.innerHTML = '<option value="">Seleccionar cliente</option>' +
+        clientes.map(c => `<option value="${c.idCliente}">${c.NombreCompleto}</option>`).join('');
+}
+
+function cargarAlquileresEnSelect() {
+    const select = document.getElementById('alquilerPago');
+    if (!select) return;
+
+    const alquileresActivos = alquileres.filter(a => a.Estado === 'Activo');
+
+    select.innerHTML = '<option value="">Seleccionar alquiler (opcional)</option>' +
+        alquileresActivos.map(a => `<option value="${a.idAlquiler}">${a.ProductoNombre} - ${a.ClienteNombre}</option>`).join('');
+}
+
 document.addEventListener('click', function(evento) {
-    const modales = ['modalProducto', 'modalCliente', 'modalAlquiler', 'modalEstacion'];
+    const modales = ['modalProducto', 'modalCliente', 'modalAlquiler', 'modalEstacion', 'modalPago'];
     modales.forEach(idModal => {
         const modal = document.getElementById(idModal);
         if (modal && evento.target === modal) {

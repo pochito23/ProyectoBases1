@@ -35,6 +35,11 @@ urlpatterns = [
 
     # Estadísticas
     path('estadisticas/', views.estadisticas_dashboard, name='estadisticas'),
+
+    #administradores
+
+    path('login/', views.login_administrador, name='iniciarSesion'),
+    path('/registrar', views.registrar_administrador, name='registrar'),
 ]
 
 """

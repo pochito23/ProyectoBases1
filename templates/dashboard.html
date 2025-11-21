@@ -10,21 +10,18 @@
 </head>
 <body class="bg-gray-50">
 
-    <!-- Overlay para móvil -->
     <div id="overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-10 md:hidden" onclick="alternarMenu()"></div>
 
-    <!-- Menú lateral -->
     <div id="menuLateral" class="menu-lateral fixed left-0 top-0 h-full w-64 shadow-lg p-6 z-20 transition-transform duration-300" style="background: linear-gradient(180deg, #f5f5f5 0%, #e8e8e8 100%);">
         <div class="mb-8 flex justify-between items-center">
             <h1 class="text-2xl font-bold bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent">
-                <i class="fas fa-store"></i> Reservas Pro
+                <i class="fas fa-store"></i> Arrendamiento
             </h1>
             <button onclick="alternarMenu()" class="md:hidden text-gray-600 text-2xl">
                 <i class="fas fa-times"></i>
             </button>
         </div>
 
-        <!-- Navegación -->
         <nav class="space-y-2">
             <a href="#" onclick="mostrarSeccion('dashboard'); return false;" data-seccion="dashboard" class="enlace-nav flex items-center space-x-3 p-3 rounded-full bg-gradient-to-r from-pink-200 to-purple-200 shadow-sm transition-all">
                 <span class="text-2xl"><i class="fas fa-chart-line"></i></span>
@@ -74,7 +71,6 @@
         </div>
     </div>
 
-    <!-- Contenido principal -->
     <div class="md:ml-64 p-4 md:p-8">
         <div id="contenidoPrincipal"></div>
     </div>
@@ -89,23 +85,23 @@
 
             <form id="formularioProducto" onsubmit="guardarProducto(event)" class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Nombre del Producto *</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Nombre del Producto</label>
                     <input type="text" id="nombreProducto" required class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-300" placeholder="Ej: Bicicleta de Montaña">
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Disponibles *</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Disponibles</label>
                         <input type="number" id="disponiblesProducto" required min="0" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-300" placeholder="0">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Precio *</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Precio</label>
                         <input type="number" id="precioProducto" required step="0.01" min="0" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-300" placeholder="0.00">
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Producto *</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Producto</label>
                     <select id="tipoProducto" required class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-300">
                         <option value="Arrendamiento">Arrendamiento</option>
                         <option value="Venta">Venta</option>
@@ -140,23 +136,23 @@
             <form id="formularioCliente" onsubmit="guardarCliente(event)" class="space-y-4">
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Nombre *</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Nombre</label>
                         <input type="text" id="nombreCliente" required class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-300" placeholder="Juan">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Apellido *</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Apellido</label>
                         <input type="text" id="apellidoCliente" required class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-300" placeholder="Pérez">
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">DNI *</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">DNI</label>
                     <input type="text" id="dniCliente" required class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-300" placeholder="0801-1990-12345">
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Teléfono *</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Teléfono</label>
                         <input type="tel" id="telefonoCliente" required class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-300" placeholder="9999-1111">
                     </div>
                     <div>
@@ -192,14 +188,14 @@
 
             <form id="formularioAlquiler" onsubmit="guardarAlquiler(event)" class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Cliente *</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Cliente</label>
                     <select id="clienteAlquiler" required class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-300">
                         <option value="">Seleccionar cliente</option>
                     </select>
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Producto *</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Producto</label>
                     <select id="productoAlquiler" required class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-300">
                         <option value="">Seleccionar producto</option>
                     </select>
@@ -207,18 +203,18 @@
 
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Fecha Inicio *</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Fecha Inicio</label>
                         <input type="date" id="fechaInicioAlquiler" required class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-300">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Fecha Fin *</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Fecha Fin</label>
                         <input type="date" id="fechaFinAlquiler" required class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-300">
                     </div>
                 </div>
 
                 <div class="grid grid-cols-3 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Cantidad *</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Cantidad</label>
                         <input type="number" id="cantidadAlquiler" required min="1" value="1" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-300">
                     </div>
                     <div>
@@ -243,6 +239,57 @@
         </div>
     </div>
 
+    <!-- Modal Pago -->
+    <div id="modalPago" class="hidden fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl p-8 max-w-2xl w-full shadow-2xl max-h-screen overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-gray-800">Registrar Pago</h3>
+                <button onclick="cerrarModal('modalPago')" class="text-gray-400 hover:text-gray-600 text-3xl">&times;</button>
+            </div>
+
+            <form id="formularioPago" onsubmit="guardarPago(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Cliente</label>
+                    <select id="clientePago" required class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-300">
+                        <option value="">Seleccionar cliente</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Alquiler Relacionado (Opcional)</label>
+                    <select id="alquilerPago" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-300">
+                        <option value="">Seleccionar alquiler</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Monto</label>
+                        <input type="number" id="montoPago" required step="0.01" min="0" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-300" placeholder="0.00">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Método de Pago</label>
+                        <select id="metodoPago" required class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-300">
+                            <option value="Efectivo">Efectivo</option>
+                            <option value="Tarjeta">Tarjeta</option>
+                            <option value="Transferencia">Transferencia</option>
+                            <option value="Cheque">Cheque</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex space-x-4 pt-4">
+                    <button type="button" onclick="cerrarModal('modalPago')" class="flex-1 px-6 py-3 border border-gray-300 rounded-xl text-gray-700 font-medium hover:bg-gray-50">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="flex-1 px-6 py-3 rounded-xl text-white font-medium" style="background: linear-gradient(135deg, #34d399, #10b981);">
+                        Guardar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Modal Estación -->
     <div id="modalEstacion" class="hidden fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50 p-4">
         <div class="bg-white rounded-2xl p-8 max-w-2xl w-full shadow-2xl max-h-screen overflow-y-auto">
@@ -253,7 +300,7 @@
 
             <form id="formularioEstacion" onsubmit="guardarEstacion(event)" class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Nombre de la Estación *</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Nombre de la Estación</label>
                     <input type="text" id="nombreEstacion" required class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-300" placeholder="Ej: Estación Centro">
                 </div>
 
