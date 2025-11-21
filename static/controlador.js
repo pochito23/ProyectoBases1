@@ -799,7 +799,34 @@ function renderizarEstaciones() {
     `).join('');
 }
 
-
+async function guardarEstacion(evento) {
+    evento.preventDefault();
+    
+    const datos = {
+        nombre: document.getElementById('nombreEstacion').value,
+        descripcion: document.getElementById('descripcionEstacion').value
+    };
+    
+    try {
+        const respuesta = await fetch('/estaciones/crear/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(datos)
+        });
+        
+        if (respuesta.ok) {
+            mostrarNotificacion('Estación agregada exitosamente', 'success');
+            cerrarModal('modalEstacion');
+            await cargarEstaciones();
+            if (seccionActual === 'estaciones') renderizarEstaciones();
+        } else {
+            mostrarNotificacion('Error al agregar estación', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarNotificacion('Error de conexión', 'error');
+    }
+}
 // ============================================
 // MODALES
 // ============================================
@@ -827,7 +854,8 @@ function cerrarModal(idModal) {
     const formularios = {
         'modalProducto': 'formularioProducto',
         'modalCliente': 'formularioCliente',
-        'modalAlquiler': 'formularioAlquiler'
+        'modalAlquiler': 'formularioAlquiler',
+        'modalEstacion': 'formularioEstacion'
     };
 
     const formulario = document.getElementById(formularios[idModal]);

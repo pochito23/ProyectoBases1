@@ -1,41 +1,30 @@
-"""
-URL configuration para SistemaArrendamiento
-"""
-
 from django.contrib import admin
 from django.urls import path
 from ProyectoBases import views
 
 urlpatterns = [
-    # ===== PÁGINAS HTML =====
     path('', views.pagina_login, name='login'),
     path('login/', views.pagina_login, name='pagina_login'),
     path('dashboard/', views.pagina_dashboard, name='pagina_dashboard'),
 
-    # ===== PRODUCTOS =====
     path('productos/', views.listar_productos, name='listar_productos'),
     path('productos/crear/', views.crear_producto, name='crear_producto'),
     path('productos/eliminar/<int:producto_id>/', views.eliminar_producto, name='eliminar_producto'),
 
-    # ===== CLIENTES =====
     path('clientes/', views.listar_clientes, name='listar_clientes'),
     path('clientes/crear/', views.crear_cliente, name='crear_cliente'),
 
-    # ===== ALQUILERES =====
     path('alquileres/', views.listar_alquileres, name='listar_alquileres'),
     path('alquileres/crear/', views.crear_alquiler, name='crear_alquiler'),
 
-    # ===== ESTACIONES =====
     path('estaciones/', views.listar_estaciones, name='listar_estaciones'),
+    path('estaciones/crear/', views.crear_estacion, name='crear_estacion'),
 
-    # ===== PAGOS =====
     path('pagos/', views.listar_pagos, name='listar_pagos'),
     path('pagos/registrar/', views.registrar_pago, name='registrar_pago'),
 
-    # ===== ESTADÍSTICAS =====
     path('estadisticas/', views.estadisticas_dashboard, name='estadisticas'),
 ]
-
 """
 DOCUMENTACIÓN DE RUTAS:
 

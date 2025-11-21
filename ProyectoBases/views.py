@@ -1,8 +1,3 @@
-"""
-views.py - Sistema de Arrendamiento
-Operaciones CRUD con SQL puro sobre SistemaArrendamiento
-"""
-
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.db import connection
@@ -10,12 +5,7 @@ import json
 from datetime import datetime
 
 
-# ============================================
-# HELPER: Ejecutar consultas SQL
-# ============================================
-
 def ejecutar_query(query, params=None):
-    """Función helper para ejecutar queries SQL"""
     with connection.cursor() as cursor:
         cursor.execute(query, params or [])
         columns = [col[0] for col in cursor.description] if cursor.description else []
@@ -23,18 +13,12 @@ def ejecutar_query(query, params=None):
 
 
 def ejecutar_insert(query, params):
-    """Función helper para INSERT/UPDATE/DELETE"""
     with connection.cursor() as cursor:
         cursor.execute(query, params)
         return cursor.lastrowid
 
 
-# ============================================
-# PRODUCTOS
-# ============================================
-
 def listar_productos(request):
-    """GET /productos/ - Lista todos los productos"""
     query = """
         SELECT 
             p.idProducto,
@@ -54,14 +38,12 @@ def listar_productos(request):
 
 @csrf_exempt
 def crear_producto(request):
-    """POST /productos/crear/ - Crea un nuevo producto"""
     if request.method != 'POST':
         return JsonResponse({'error': 'Método no permitido'}, status=405)
 
     try:
         data = json.loads(request.body)
 
-        # Validación básica
         if not data.get('nombre') or not data.get('precio'):
             return JsonResponse({'error': 'Faltan datos requeridos'}, status=400)
 
@@ -95,7 +77,6 @@ def crear_producto(request):
 
 @csrf_exempt
 def eliminar_producto(request, producto_id):
-    """DELETE /productos/eliminar/<id>/ - Elimina un producto"""
     if request.method != 'DELETE':
         return JsonResponse({'error': 'Método no permitido'}, status=405)
 
@@ -108,12 +89,7 @@ def eliminar_producto(request, producto_id):
         return JsonResponse({'error': str(e)}, status=500)
 
 
-# ============================================
-# CLIENTES
-# ============================================
-
 def listar_clientes(request):
-    """GET /clientes/ - Lista todos los clientes"""
     query = """
         SELECT 
             c.idCliente,
@@ -135,14 +111,12 @@ def listar_clientes(request):
 
 @csrf_exempt
 def crear_cliente(request):
-    """POST /clientes/crear/ - Crea un nuevo cliente"""
     if request.method != 'POST':
         return JsonResponse({'error': 'Método no permitido'}, status=405)
 
     try:
         data = json.loads(request.body)
 
-        # 1. Insertar la persona
         query_persona = """
             INSERT INTO Personas 
                 (DNI, Nombre, Apellido, Telefono, Email, Direccion, NotasAdicionales)
@@ -161,14 +135,13 @@ def crear_cliente(request):
 
         persona_id = ejecutar_insert(query_persona, params_persona)
 
-        # 2. Insertar el cliente
         query_cliente = """
             INSERT INTO Clientes (idCliente, idPersona, Tipo, EstadoPago)
             VALUES (%s, %s, %s, %s)
         """
 
         params_cliente = [
-            persona_id,  # Usar el mismo ID
+            persona_id,
             persona_id,
             data.get('tipo', 'Regular'),
             data.get('estadoPago', 'Al día')
@@ -185,12 +158,7 @@ def crear_cliente(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 
-# ============================================
-# ALQUILERES (ARRENDAMIENTOS)
-# ============================================
-
 def listar_alquileres(request):
-    """GET /alquileres/ - Lista todos los alquileres"""
     query = """
         SELECT 
             pa.idAlquiler,
@@ -216,7 +184,6 @@ def listar_alquileres(request):
 
 @csrf_exempt
 def crear_alquiler(request):
-    """POST /alquileres/crear/ - Crea un nuevo alquiler"""
     if request.method != 'POST':
         return JsonResponse({'error': 'Método no permitido'}, status=405)
 
@@ -251,22 +218,13 @@ def crear_alquiler(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 
-# ============================================
-# ESTADÍSTICAS PARA EL DASHBOARD
-# ============================================
-
 def estadisticas_dashboard(request):
-    """GET /estadisticas/ - Retorna estadísticas del sistema"""
-
-    # Total de productos
     query_productos = "SELECT COUNT(*) as total FROM Productos"
     total_productos = ejecutar_query(query_productos)[0]['total']
 
-    # Total de clientes
     query_clientes = "SELECT COUNT(*) as total FROM Clientes"
     total_clientes = ejecutar_query(query_clientes)[0]['total']
 
-    # Alquileres por estado
     query_estados = """
         SELECT 
             SUM(CASE WHEN Estado = 'Activo' THEN 1 ELSE 0 END) as activos,
@@ -276,7 +234,6 @@ def estadisticas_dashboard(request):
     """
     estados = ejecutar_query(query_estados)[0]
 
-    # Ingresos totales
     query_ingresos = """
         SELECT SUM(Monto) as total
         FROM Pagos
@@ -284,7 +241,6 @@ def estadisticas_dashboard(request):
     """
     ingresos = ejecutar_query(query_ingresos)[0]['total'] or 0
 
-    # Productos más arrendados
     query_populares = """
         SELECT 
             p.idProducto,
@@ -311,12 +267,7 @@ def estadisticas_dashboard(request):
     })
 
 
-# ============================================
-# ESTACIONES DE VENTA
-# ============================================
-
 def listar_estaciones(request):
-    """GET /estaciones/ - Lista todas las estaciones"""
     query = """
         SELECT 
             idEstacion,
@@ -329,12 +280,42 @@ def listar_estaciones(request):
     return JsonResponse({'estaciones': estaciones}, safe=False)
 
 
-# ============================================
-# PAGOS
-# ============================================
+@csrf_exempt
+def crear_estacion(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+
+        if not data.get('nombre'):
+            return JsonResponse({'error': 'El nombre es requerido'}, status=400)
+
+        query = """
+            INSERT INTO EstacionesVenta 
+                (Nombre, DescripcionEstacion)
+            VALUES (%s, %s)
+        """
+
+        params = [
+            data.get('nombre'),
+            data.get('descripcion', '')
+        ]
+
+        estacion_id = ejecutar_insert(query, params)
+
+        return JsonResponse({
+            'mensaje': 'Estación creada exitosamente',
+            'id': estacion_id
+        }, status=201)
+
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'JSON inválido'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
 
 def listar_pagos(request):
-    """GET /pagos/ - Lista todos los pagos"""
     query = """
         SELECT 
             p.idPago,
@@ -353,7 +334,6 @@ def listar_pagos(request):
 
 @csrf_exempt
 def registrar_pago(request):
-    """POST /pagos/registrar/ - Registra un nuevo pago"""
     if request.method != 'POST':
         return JsonResponse({'error': 'Método no permitido'}, status=405)
 
@@ -366,7 +346,6 @@ def registrar_pago(request):
             VALUES (%s, %s, %s, %s, %s)
         """
 
-        # Generar ID único
         query_max_id = "SELECT IFNULL(MAX(idPago), 0) + 1 as nuevo_id FROM Pagos"
         nuevo_id = ejecutar_query(query_max_id)[0]['nuevo_id']
 
@@ -389,17 +368,11 @@ def registrar_pago(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 
-# ============================================
-# PÁGINAS HTML (RENDERIZADO)
-# ============================================
-
 def pagina_login(request):
-    """Renderiza la página de login"""
     from django.shortcuts import render
     return render(request, 'login.html')
 
 
 def pagina_dashboard(request):
-    """Renderiza la página del dashboard"""
     from django.shortcuts import render
     return render(request, 'dashboard.html')
