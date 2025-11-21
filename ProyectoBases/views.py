@@ -18,11 +18,10 @@ def ejecutar_insert(query, params):
         return cursor.lastrowid
 
 
-# AUTENTICACIÓN
 @csrf_exempt
 def login_administrador(request):
     if request.method != 'POST':
-        return JsonResponse({'error': 'Método no permitido'}, status=405)
+        return JsonResponse({'error': 'Metodo no permitido'}, status=405)
 
     try:
         data = json.loads(request.body)
@@ -30,18 +29,14 @@ def login_administrador(request):
         password = data.get('password')
 
         query = """
-                SELECT idAdministrador, Usuario, Nombre, Email
-                FROM administradores
-                WHERE Usuario = %s \
-                  AND Password = %s \
-                """
+            SELECT idAdministrador, Usuario, Nombre, Email
+            FROM administradores
+            WHERE Usuario = %s AND Password = %s
+        """
         resultado = ejecutar_query(query, [usuario, password])
 
         if resultado:
-            return JsonResponse({
-                'success': True,
-                'administrador': resultado[0]
-            })
+            return JsonResponse({'success': True, 'administrador': resultado[0]})
         else:
             return JsonResponse({'success': False, 'error': 'Credenciales incorrectas'}, status=401)
 
@@ -52,22 +47,15 @@ def login_administrador(request):
 @csrf_exempt
 def registrar_administrador(request):
     if request.method != 'POST':
-        return JsonResponse({'error': 'Método no permitido'}, status=405)
+        return JsonResponse({'error': 'Metodo no permitido'}, status=405)
 
     try:
         data = json.loads(request.body)
-
         query = """
-                INSERT INTO administradores (Usuario, Password, Nombre, Email)
-                VALUES (%s, %s, %s, %s) \
-                """
-        params = [
-            data.get('usuario'),
-            data.get('password'),
-            data.get('nombre'),
-            data.get('email')
-        ]
-
+            INSERT INTO administradores (Usuario, Password, Nombre, Email)
+            VALUES (%s, %s, %s, %s)
+        """
+        params = [data.get('usuario'), data.get('password'), data.get('nombre'), data.get('email')]
         admin_id = ejecutar_insert(query, params)
 
         return JsonResponse({
@@ -80,9 +68,7 @@ def registrar_administrador(request):
         return JsonResponse({'error': str(e)}, status=400)
 
 
-# PRODUCTOS - CORREGIDO
 def listar_productos(request, idAdministrador=None):
-    # Obtener idAdministrador de la URL o query params
     if not idAdministrador:
         idAdministrador = request.GET.get('idAdministrador')
 
@@ -90,11 +76,11 @@ def listar_productos(request, idAdministrador=None):
         return JsonResponse({'error': 'ID de administrador requerido'}, status=400)
 
     query = """
-            SELECT p.idProducto, p.nombre, p.Precio, p.Descripcion, p.TipoProducto, p.Disponibles
-            FROM productos p
-            WHERE p.idAdministrador = %s
-            ORDER BY p.nombre \
-            """
+        SELECT p.idProducto, p.nombre, p.Precio, p.Descripcion, p.TipoProducto, p.Disponibles
+        FROM productos p
+        WHERE p.idAdministrador = %s
+        ORDER BY p.nombre
+    """
     productos = ejecutar_query(query, [idAdministrador])
     return JsonResponse({'productos': productos}, safe=False)
 
@@ -102,17 +88,14 @@ def listar_productos(request, idAdministrador=None):
 @csrf_exempt
 def crear_producto(request):
     if request.method != 'POST':
-        return JsonResponse({'error': 'Método no permitido'}, status=405)
+        return JsonResponse({'error': 'Metodo no permitido'}, status=405)
 
     try:
         data = json.loads(request.body)
-
-        # Primero crear el producto base
         query_producto = """
-                         INSERT INTO productos (nombre, Precio, Descripcion, TipoProducto, idAdministrador, Disponibles)
-                         VALUES (%s, %s, %s, %s, %s, %s) \
-                         """
-
+            INSERT INTO productos (nombre, Precio, Descripcion, TipoProducto, idAdministrador, Disponibles)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """
         params = [
             data.get('nombre'),
             data.get('precio'),
@@ -121,27 +104,16 @@ def crear_producto(request):
             data.get('idAdministrador'),
             data.get('disponibles', 0)
         ]
-
         producto_id = ejecutar_insert(query_producto, params)
 
-        # Si es producto de arrendamiento, crear registro en productosarrendamiento
         if data.get('tipoProducto') == 'Arrendamiento':
             query_arrendamiento = """
-                                  INSERT INTO productosarrendamiento
-                                      (idProducto, UnidadTiempo, Estado, HorarioDisponibilidad)
-                                  VALUES (%s, %s, %s, %s) \
-                                  """
-            ejecutar_insert(query_arrendamiento, [
-                producto_id,
-                'Día',
-                'Disponible',
-                '24/7'
-            ])
+                INSERT INTO productosarrendamiento (idProducto, UnidadTiempo, Estado, HorarioDisponibilidad)
+                VALUES (%s, %s, %s, %s)
+            """
+            ejecutar_insert(query_arrendamiento, [producto_id, 'Dia', 'Disponible', '24/7'])
 
-        return JsonResponse({
-            'mensaje': 'Producto creado exitosamente',
-            'id': producto_id
-        }, status=201)
+        return JsonResponse({'mensaje': 'Producto creado exitosamente', 'id': producto_id}, status=201)
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
@@ -150,22 +122,15 @@ def crear_producto(request):
 @csrf_exempt
 def editar_producto(request, producto_id):
     if request.method != 'POST':
-        return JsonResponse({'error': 'Método no permitido'}, status=405)
+        return JsonResponse({'error': 'Metodo no permitido'}, status=405)
 
     try:
         data = json.loads(request.body)
-
         query = """
-                UPDATE productos
-                SET nombre       = %s, \
-                    Disponibles  = %s, \
-                    Precio       = %s,
-                    Descripcion  = %s, \
-                    TipoProducto = %s
-                WHERE idProducto = %s \
-                  AND idAdministrador = %s \
-                """
-
+            UPDATE productos
+            SET nombre = %s, Disponibles = %s, Precio = %s, Descripcion = %s, TipoProducto = %s
+            WHERE idProducto = %s AND idAdministrador = %s
+        """
         params = [
             data.get('nombre'),
             data.get('disponibles', 0),
@@ -175,7 +140,6 @@ def editar_producto(request, producto_id):
             producto_id,
             data.get('idAdministrador')
         ]
-
         ejecutar_insert(query, params)
         return JsonResponse({'mensaje': 'Producto actualizado exitosamente'}, status=200)
 
@@ -186,7 +150,7 @@ def editar_producto(request, producto_id):
 @csrf_exempt
 def eliminar_producto(request, producto_id):
     if request.method != 'DELETE':
-        return JsonResponse({'error': 'Método no permitido'}, status=405)
+        return JsonResponse({'error': 'Metodo no permitido'}, status=405)
 
     id_admin = request.GET.get('idAdministrador')
     query = "DELETE FROM productos WHERE idProducto = %s AND idAdministrador = %s"
@@ -198,27 +162,19 @@ def eliminar_producto(request, producto_id):
         return JsonResponse({'error': str(e)}, status=500)
 
 
-# CLIENTES - CORREGIDO
 def listar_clientes(request):
     id_admin = request.GET.get('idAdministrador')
     if not id_admin:
         return JsonResponse({'error': 'ID de administrador requerido'}, status=400)
 
     query = """
-            SELECT c.idCliente, \
-                   p.DNI, \
-                   CONCAT(p.Nombre, ' ', p.Apellido) as NombreCompleto,
-                   p.Telefono, \
-                   p.Email, \
-                   p.Direccion, \
-                   c.Tipo, \
-                   c.EstadoPago, \
-                   p.FechaIngreso
-            FROM clientes c
-                     INNER JOIN personas p ON c.idPersona = p.idPersona
-            WHERE c.idAdministrador = %s
-            ORDER BY p.FechaIngreso DESC \
-            """
+        SELECT c.idCliente, p.DNI, CONCAT(p.Nombre, ' ', p.Apellido) as NombreCompleto,
+               p.Telefono, p.Email, p.Direccion, c.Tipo, c.EstadoPago, p.FechaIngreso
+        FROM clientes c
+        INNER JOIN personas p ON c.idPersona = p.idPersona
+        WHERE c.idAdministrador = %s
+        ORDER BY p.FechaIngreso DESC
+    """
     clientes = ejecutar_query(query, [id_admin])
     return JsonResponse({'clientes': clientes}, safe=False)
 
@@ -226,17 +182,14 @@ def listar_clientes(request):
 @csrf_exempt
 def crear_cliente(request):
     if request.method != 'POST':
-        return JsonResponse({'error': 'Método no permitido'}, status=405)
+        return JsonResponse({'error': 'Metodo no permitido'}, status=405)
 
     try:
         data = json.loads(request.body)
-
-        # Crear persona primero
         query_persona = """
-                        INSERT INTO personas (DNI, Nombre, Apellido, Telefono, Email, Direccion, NotasAdicionales)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s) \
-                        """
-
+            INSERT INTO personas (DNI, Nombre, Apellido, Telefono, Email, Direccion, NotasAdicionales)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """
         params_persona = [
             data.get('dni'),
             data.get('nombre'),
@@ -246,28 +199,21 @@ def crear_cliente(request):
             data.get('direccion', ''),
             data.get('notas', '')
         ]
-
         persona_id = ejecutar_insert(query_persona, params_persona)
 
-        # Crear cliente
         query_cliente = """
-                        INSERT INTO clientes (idPersona, Tipo, EstadoPago, idAdministrador)
-                        VALUES (%s, %s, %s, %s) \
-                        """
-
+            INSERT INTO clientes (idPersona, Tipo, EstadoPago, idAdministrador)
+            VALUES (%s, %s, %s, %s)
+        """
         params_cliente = [
             persona_id,
             data.get('tipo', 'Regular'),
-            data.get('estadoPago', 'Al día'),
+            data.get('estadoPago', 'Al dia'),
             data.get('idAdministrador')
         ]
-
         cliente_id = ejecutar_insert(query_cliente, params_cliente)
 
-        return JsonResponse({
-            'mensaje': 'Cliente creado exitosamente',
-            'id': cliente_id
-        }, status=201)
+        return JsonResponse({'mensaje': 'Cliente creado exitosamente', 'id': cliente_id}, status=201)
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
@@ -276,20 +222,16 @@ def crear_cliente(request):
 @csrf_exempt
 def editar_cliente(request, cliente_id):
     if request.method != 'POST':
-        return JsonResponse({'error': 'Método no permitido'}, status=405)
+        return JsonResponse({'error': 'Metodo no permitido'}, status=405)
 
     try:
         data = json.loads(request.body)
-
         query = """
-                UPDATE personas p
-                    INNER JOIN clientes c \
-                ON p.idPersona = c.idPersona
-                    SET p.DNI = %s, p.Nombre = %s, p.Apellido = %s, p.Telefono = %s, p.Email = %s, p.Direccion = %s
-                WHERE c.idCliente = %s \
-                  AND c.idAdministrador = %s \
-                """
-
+            UPDATE personas p
+            INNER JOIN clientes c ON p.idPersona = c.idPersona
+            SET p.DNI = %s, p.Nombre = %s, p.Apellido = %s, p.Telefono = %s, p.Email = %s, p.Direccion = %s
+            WHERE c.idCliente = %s AND c.idAdministrador = %s
+        """
         params = [
             data.get('dni'),
             data.get('nombre'),
@@ -300,7 +242,6 @@ def editar_cliente(request, cliente_id):
             cliente_id,
             data.get('idAdministrador')
         ]
-
         ejecutar_insert(query, params)
         return JsonResponse({'mensaje': 'Cliente actualizado exitosamente'}, status=200)
 
@@ -311,28 +252,19 @@ def editar_cliente(request, cliente_id):
 @csrf_exempt
 def eliminar_cliente(request, cliente_id):
     if request.method != 'DELETE':
-        return JsonResponse({'error': 'Método no permitido'}, status=405)
+        return JsonResponse({'error': 'Metodo no permitido'}, status=405)
 
     try:
         id_admin = request.GET.get('idAdministrador')
-
-        query_persona = """
-                        SELECT idPersona \
-                        FROM clientes
-                        WHERE idCliente = %s \
-                          AND idAdministrador = %s \
-                        """
+        query_persona = "SELECT idPersona FROM clientes WHERE idCliente = %s AND idAdministrador = %s"
         resultado = ejecutar_query(query_persona, [cliente_id, id_admin])
 
         if resultado:
             id_persona = resultado[0]['idPersona']
-
             query_cliente = "DELETE FROM clientes WHERE idCliente = %s"
             ejecutar_insert(query_cliente, [cliente_id])
-
             query_persona_delete = "DELETE FROM personas WHERE idPersona = %s"
             ejecutar_insert(query_persona_delete, [id_persona])
-
             return JsonResponse({'mensaje': 'Cliente eliminado'}, status=200)
         else:
             return JsonResponse({'error': 'Cliente no encontrado'}, status=404)
@@ -341,33 +273,24 @@ def eliminar_cliente(request, cliente_id):
         return JsonResponse({'error': str(e)}, status=500)
 
 
-# ALQUILERES - CORREGIDO
 def listar_alquileres(request):
     id_admin = request.GET.get('idAdministrador')
     if not id_admin:
         return JsonResponse({'error': 'ID de administrador requerido'}, status=400)
 
     query = """
-            SELECT pa.idAlquiler, \
-                   pa.FechaInicio, \
-                   pa.FechaCorte, \
-                   pa.Estado,
-                   pa.CantidadAlquilada, \
-                   pa.PagoInicial, \
-                   pa.PagoDeposito, \
-                   pa.MontoAlquiler,
-                   p.nombre                              as ProductoNombre, \
-                   CONCAT(per.Nombre, ' ', per.Apellido) as ClienteNombre,
-                   p.Precio, \
-                   (pa.CantidadAlquilada * p.Precio)     as TotalPagar
-            FROM productosarrendamiento_clientes pa
-                     INNER JOIN productosarrendamiento pra ON pa.idProductoArrendamiento = pra.idProductoArrendamiento
-                     INNER JOIN productos p ON pra.idProducto = p.idProducto
-                     INNER JOIN clientes c ON pa.idCliente = c.idCliente
-                     INNER JOIN personas per ON c.idPersona = per.idPersona
-            WHERE pa.idAdministrador = %s
-            ORDER BY pa.FechaInicio DESC \
-            """
+        SELECT pa.idAlquiler, pa.FechaInicio, pa.FechaCorte, pa.Estado, pa.CantidadAlquilada,
+               pa.PagoInicial, pa.PagoDeposito, pa.MontoAlquiler, p.nombre as ProductoNombre,
+               CONCAT(per.Nombre, ' ', per.Apellido) as ClienteNombre, p.Precio,
+               (pa.CantidadAlquilada * p.Precio) as TotalPagar
+        FROM productosarrendamiento_clientes pa
+        INNER JOIN productosarrendamiento pra ON pa.idProductoArrendamiento = pra.idProductoArrendamiento
+        INNER JOIN productos p ON pra.idProducto = p.idProducto
+        INNER JOIN clientes c ON pa.idCliente = c.idCliente
+        INNER JOIN personas per ON c.idPersona = per.idPersona
+        WHERE pa.idAdministrador = %s
+        ORDER BY pa.FechaInicio DESC
+    """
     alquileres = ejecutar_query(query, [id_admin])
     return JsonResponse({'alquileres': alquileres}, safe=False)
 
@@ -375,25 +298,17 @@ def listar_alquileres(request):
 @csrf_exempt
 def crear_alquiler(request):
     if request.method != 'POST':
-        return JsonResponse({'error': 'Método no permitido'}, status=405)
+        return JsonResponse({'error': 'Metodo no permitido'}, status=405)
 
     try:
         data = json.loads(request.body)
-
-        # Obtener el idProductoArrendamiento
-        query_prod_arr = """
-                         SELECT idProductoArrendamiento \
-                         FROM productosarrendamiento
-                         WHERE idProducto = %s \
-                         """
+        query_prod_arr = "SELECT idProductoArrendamiento FROM productosarrendamiento WHERE idProducto = %s"
         resultado = ejecutar_query(query_prod_arr, [data.get('idProducto')])
 
         if not resultado:
             return JsonResponse({'error': 'Producto de arrendamiento no encontrado'}, status=404)
 
         id_prod_arrendamiento = resultado[0]['idProductoArrendamiento']
-
-        # Calcular monto
         fecha_inicio = datetime.strptime(data.get('fechaInicio'), '%Y-%m-%d')
         fecha_corte = datetime.strptime(data.get('fechaCorte'), '%Y-%m-%d')
         dias = (fecha_corte - fecha_inicio).days
@@ -401,17 +316,14 @@ def crear_alquiler(request):
         query_precio = "SELECT Precio FROM productos WHERE idProducto = %s"
         resultado = ejecutar_query(query_precio, [data.get('idProducto')])
         precio = float(resultado[0]['Precio']) if resultado else 0
-
         monto_total = dias * precio * float(data.get('cantidad', 1))
 
         query = """
-                INSERT INTO productosarrendamiento_clientes
-                (idCliente, idProductoArrendamiento, FechaInicio, FechaCorte,
-                 CantidadAlquilada, PagoInicial, PagoDeposito, MontoAlquiler,
-                 Estado, idAdministrador)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'Activo', %s) \
-                """
-
+            INSERT INTO productosarrendamiento_clientes
+            (idCliente, idProductoArrendamiento, FechaInicio, FechaCorte, CantidadAlquilada,
+             PagoInicial, PagoDeposito, MontoAlquiler, Estado, idAdministrador)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'Activo', %s)
+        """
         params = [
             data.get('idCliente'),
             id_prod_arrendamiento,
@@ -423,13 +335,39 @@ def crear_alquiler(request):
             monto_total,
             data.get('idAdministrador')
         ]
-
         alquiler_id = ejecutar_insert(query, params)
 
-        return JsonResponse({
-            'mensaje': 'Alquiler creado exitosamente',
-            'id': alquiler_id
-        }, status=201)
+        return JsonResponse({'mensaje': 'Alquiler creado exitosamente', 'id': alquiler_id}, status=201)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+def editar_alquiler(request, alquiler_id):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Metodo no permitido'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+        query = """
+            UPDATE productosarrendamiento_clientes
+            SET FechaInicio = %s, FechaCorte = %s, Estado = %s, CantidadAlquilada = %s,
+                PagoInicial = %s, PagoDeposito = %s
+            WHERE idAlquiler = %s AND idAdministrador = %s
+        """
+        params = [
+            data.get('fechaInicio'),
+            data.get('fechaCorte'),
+            data.get('estado'),
+            data.get('cantidad'),
+            data.get('pagoInicial'),
+            data.get('pagoDeposito'),
+            alquiler_id,
+            data.get('idAdministrador')
+        ]
+        ejecutar_insert(query, params)
+        return JsonResponse({'mensaje': 'Alquiler actualizado exitosamente'}, status=200)
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
@@ -438,15 +376,10 @@ def crear_alquiler(request):
 @csrf_exempt
 def eliminar_alquiler(request, alquiler_id):
     if request.method != 'DELETE':
-        return JsonResponse({'error': 'Método no permitido'}, status=405)
+        return JsonResponse({'error': 'Metodo no permitido'}, status=405)
 
     id_admin = request.GET.get('idAdministrador')
-    query = """
-            DELETE \
-            FROM productosarrendamiento_clientes
-            WHERE idAlquiler = %s \
-              AND idAdministrador = %s \
-            """
+    query = "DELETE FROM productosarrendamiento_clientes WHERE idAlquiler = %s AND idAdministrador = %s"
 
     try:
         ejecutar_insert(query, [alquiler_id, id_admin])
@@ -455,24 +388,20 @@ def eliminar_alquiler(request, alquiler_id):
         return JsonResponse({'error': str(e)}, status=500)
 
 
-# PAGOS - CORREGIDO
 def listar_pagos(request):
     id_admin = request.GET.get('idAdministrador')
     if not id_admin:
         return JsonResponse({'error': 'ID de administrador requerido'}, status=400)
 
     query = """
-            SELECT pt.idTransaccion, \
-                   pt.MontoTransaccion               as Monto, \
-                   t.FechaTransaccion                as FechaPago,
-                   pt.MetodoPago, \
-                   CONCAT(p.Nombre, ' ', p.Apellido) as Cliente
-            FROM pagostransacciones pt
-                     INNER JOIN transacciones t ON pt.idTransaccion = t.idTransaccion
-                     LEFT JOIN clientes c ON t.idCliente = c.idCliente
-                     LEFT JOIN personas p ON c.idPersona = p.idPersona
-            ORDER BY t.FechaTransaccion DESC \
-            """
+        SELECT pt.idTransaccion, pt.MontoTransaccion as Monto, t.FechaTransaccion as FechaPago,
+               pt.MetodoPago, CONCAT(p.Nombre, ' ', p.Apellido) as Cliente
+        FROM pagostransacciones pt
+        INNER JOIN transacciones t ON pt.idTransaccion = t.idTransaccion
+        LEFT JOIN clientes c ON t.idCliente = c.idCliente
+        LEFT JOIN personas p ON c.idPersona = p.idPersona
+        ORDER BY t.FechaTransaccion DESC
+    """
     pagos = ejecutar_query(query, [])
     return JsonResponse({'pagos': pagos}, safe=False)
 
@@ -480,55 +409,68 @@ def listar_pagos(request):
 @csrf_exempt
 def registrar_pago(request):
     if request.method != 'POST':
-        return JsonResponse({'error': 'Método no permitido'}, status=405)
+        return JsonResponse({'error': 'Metodo no permitido'}, status=405)
 
     try:
         data = json.loads(request.body)
-
-        # Primero crear la transacción
-        query_transaccion = """
-                            INSERT INTO transacciones (idCliente, FechaTransaccion)
-                            VALUES (%s, NOW()) \
-                            """
+        query_transaccion = "INSERT INTO transacciones (idCliente, FechaTransaccion) VALUES (%s, NOW())"
         transaccion_id = ejecutar_insert(query_transaccion, [data.get('idCliente')])
 
-        # Luego crear el pago
         query_pago = """
-                     INSERT INTO pagostransacciones
-                         (idTransaccion, idAlquiler, MontoTransaccion, MetodoPago)
-                     VALUES (%s, %s, %s, %s) \
-                     """
-
-        params = [
-            transaccion_id,
-            data.get('idAlquiler'),
-            data.get('monto'),
-            data.get('metodoPago', 'Efectivo')
-        ]
-
+            INSERT INTO pagostransacciones (idTransaccion, idAlquiler, MontoTransaccion, MetodoPago)
+            VALUES (%s, %s, %s, %s)
+        """
+        params = [transaccion_id, data.get('idAlquiler'), data.get('monto'), data.get('metodoPago', 'Efectivo')]
         ejecutar_insert(query_pago, params)
 
-        return JsonResponse({
-            'mensaje': 'Pago registrado exitosamente',
-            'id': transaccion_id
-        }, status=201)
+        return JsonResponse({'mensaje': 'Pago registrado exitosamente', 'id': transaccion_id}, status=201)
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
 
-# ESTACIONES
+@csrf_exempt
+def editar_pago(request, pago_id):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Metodo no permitido'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+        query = """
+            UPDATE pagostransacciones
+            SET MontoTransaccion = %s, MetodoPago = %s
+            WHERE idTransaccion = %s
+        """
+        params = [data.get('monto'), data.get('metodoPago'), pago_id]
+        ejecutar_insert(query, params)
+        return JsonResponse({'mensaje': 'Pago actualizado exitosamente'}, status=200)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+def eliminar_pago(request, pago_id):
+    if request.method != 'DELETE':
+        return JsonResponse({'error': 'Metodo no permitido'}, status=405)
+
+    try:
+        query_pago = "DELETE FROM pagostransacciones WHERE idTransaccion = %s"
+        ejecutar_insert(query_pago, [pago_id])
+        query_transaccion = "DELETE FROM transacciones WHERE idTransaccion = %s"
+        ejecutar_insert(query_transaccion, [pago_id])
+        return JsonResponse({'mensaje': 'Pago eliminado'}, status=200)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
 def listar_estaciones(request):
     id_admin = request.GET.get('idAdministrador')
     if not id_admin:
         return JsonResponse({'error': 'ID de administrador requerido'}, status=400)
 
-    query = """
-            SELECT idEstacion, Nombre, DescripcionEstacion
-            FROM estaciones
-            WHERE idAdministrador = %s
-            ORDER BY Nombre \
-            """
+    query = "SELECT idEstacion, Nombre, DescripcionEstacion FROM estaciones WHERE idAdministrador = %s ORDER BY Nombre"
     estaciones = ejecutar_query(query, [id_admin])
     return JsonResponse({'estaciones': estaciones}, safe=False)
 
@@ -536,34 +478,55 @@ def listar_estaciones(request):
 @csrf_exempt
 def crear_estacion(request):
     if request.method != 'POST':
-        return JsonResponse({'error': 'Método no permitido'}, status=405)
+        return JsonResponse({'error': 'Metodo no permitido'}, status=405)
 
     try:
         data = json.loads(request.body)
-
-        query = """
-                INSERT INTO estaciones (Nombre, DescripcionEstacion, idAdministrador)
-                VALUES (%s, %s, %s) \
-                """
-
-        params = [
-            data.get('nombre'),
-            data.get('descripcion', ''),
-            data.get('idAdministrador')
-        ]
-
+        query = "INSERT INTO estaciones (Nombre, DescripcionEstacion, idAdministrador) VALUES (%s, %s, %s)"
+        params = [data.get('nombre'), data.get('descripcion', ''), data.get('idAdministrador')]
         estacion_id = ejecutar_insert(query, params)
 
-        return JsonResponse({
-            'mensaje': 'Estación creada exitosamente',
-            'id': estacion_id
-        }, status=201)
+        return JsonResponse({'mensaje': 'Estacion creada exitosamente', 'id': estacion_id}, status=201)
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
 
-# ESTADÍSTICAS
+@csrf_exempt
+def editar_estacion(request, estacion_id):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Metodo no permitido'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+        query = """
+            UPDATE estaciones
+            SET Nombre = %s, DescripcionEstacion = %s
+            WHERE idEstacion = %s AND idAdministrador = %s
+        """
+        params = [data.get('nombre'), data.get('descripcion'), estacion_id, data.get('idAdministrador')]
+        ejecutar_insert(query, params)
+        return JsonResponse({'mensaje': 'Estacion actualizada exitosamente'}, status=200)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+def eliminar_estacion(request, estacion_id):
+    if request.method != 'DELETE':
+        return JsonResponse({'error': 'Metodo no permitido'}, status=405)
+
+    id_admin = request.GET.get('idAdministrador')
+    query = "DELETE FROM estaciones WHERE idEstacion = %s AND idAdministrador = %s"
+
+    try:
+        ejecutar_insert(query, [estacion_id, id_admin])
+        return JsonResponse({'mensaje': 'Estacion eliminada'}, status=200)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
 def estadisticas_dashboard(request):
     id_admin = request.GET.get('idAdministrador')
     if not id_admin:
@@ -576,35 +539,32 @@ def estadisticas_dashboard(request):
     total_clientes = ejecutar_query(query_clientes, [id_admin])[0]['total']
 
     query_estados = """
-                    SELECT SUM(CASE WHEN Estado = 'Activo' THEN 1 ELSE 0 END)    as activos,
-                           SUM(CASE WHEN Estado = 'Pendiente' THEN 1 ELSE 0 END) as pendientes,
-                           SUM(CASE WHEN Estado = 'Realizado' THEN 1 ELSE 0 END) as realizados
-                    FROM productosarrendamiento_clientes
-                    WHERE idAdministrador = %s \
-                    """
+        SELECT 
+            SUM(CASE WHEN Estado = 'Activo' THEN 1 ELSE 0 END) as activos,
+            SUM(CASE WHEN Estado = 'Pendiente' THEN 1 ELSE 0 END) as pendientes,
+            SUM(CASE WHEN Estado = 'Realizado' THEN 1 ELSE 0 END) as realizados
+        FROM productosarrendamiento_clientes
+        WHERE idAdministrador = %s
+    """
     estados = ejecutar_query(query_estados, [id_admin])[0]
 
     query_ingresos = """
-                     SELECT COALESCE(SUM(pt.MontoTransaccion), 0) as total
-                     FROM pagostransacciones pt
-                              INNER JOIN transacciones t ON pt.idTransaccion = t.idTransaccion
-                     WHERE MONTH (t.FechaTransaccion) = MONTH (CURRENT_DATE ()) \
-                     """
+        SELECT COALESCE(SUM(pt.MontoTransaccion), 0) as total
+        FROM pagostransacciones pt
+        INNER JOIN transacciones t ON pt.idTransaccion = t.idTransaccion
+        WHERE MONTH(t.FechaTransaccion) = MONTH(CURRENT_DATE())
+    """
     ingresos = ejecutar_query(query_ingresos, [])[0]['total'] or 0
 
     query_populares = """
-                      SELECT p.idProducto, \
-                             p.nombre, \
-                             p.Precio,
-                             COUNT(pa.idAlquiler) as total_alquileres
-                      FROM productos p
-                               LEFT JOIN productosarrendamiento pra ON p.idProducto = pra.idProducto
-                               LEFT JOIN productosarrendamiento_clientes pa \
-                                         ON pra.idProductoArrendamiento = pa.idProductoArrendamiento
-                      WHERE p.idAdministrador = %s
-                      GROUP BY p.idProducto
-                      ORDER BY total_alquileres DESC LIMIT 5 \
-                      """
+        SELECT p.idProducto, p.nombre, p.Precio, COUNT(pa.idAlquiler) as total_alquileres
+        FROM productos p
+        LEFT JOIN productosarrendamiento pra ON p.idProducto = pra.idProducto
+        LEFT JOIN productosarrendamiento_clientes pa ON pra.idProductoArrendamiento = pa.idProductoArrendamiento
+        WHERE p.idAdministrador = %s
+        GROUP BY p.idProducto
+        ORDER BY total_alquileres DESC LIMIT 5
+    """
     productos_populares = ejecutar_query(query_populares, [id_admin])
 
     return JsonResponse({
@@ -618,7 +578,6 @@ def estadisticas_dashboard(request):
     })
 
 
-# PÁGINAS HTML
 def pagina_login(request):
     from django.shortcuts import render
     return render(request, 'login.html')
