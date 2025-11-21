@@ -1496,7 +1496,13 @@ function cerrarModal(idModal) {
         document.querySelector('#modalCliente h3').textContent = 'Agregar Nuevo Cliente';
     }
 }
+function cargarVentasEnSelect() {
+    const select = document.getElementById('ventaPago');
+    if (!select) return;
 
+    select.innerHTML = '<option value="">Seleccionar venta</option>' +
+        ventas.map(v => `<option value="${v.idCompra}">${v.ProductoNombre} - ${v.ClienteNombre} (L. ${v.MontoVenta})</option>`).join('');
+}
 function cargarClientesEnSelect() {
     const select = document.getElementById('clienteAlquiler');
     if (!select) return;
