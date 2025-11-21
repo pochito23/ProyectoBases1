@@ -76,7 +76,10 @@ async function registrarAdministrador(evento) {
         const respuesta = await fetch('/api/registrar/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ usuario, password, nombre, email })
+            body: JSON.stringify({ Usuario:usuario,
+                Password:password,
+                Nombre:nombre,
+                Email:email })
         });
 
         if (respuesta.ok) {
@@ -934,9 +937,14 @@ function renderizarPagos() {
 async function guardarPago(evento) {
     evento.preventDefault();
 
+    const tipo = document.querySelector('input[name="tipoTransaccion"]:checked').value;
+
     const datos = {
         idCliente: parseInt(document.getElementById('clientePago').value),
-        idAlquiler: document.getElementById('alquilerPago').value ? parseInt(document.getElementById('alquilerPago').value) : null,
+        idAlquiler: tipo === 'alquiler' && document.getElementById('alquilerPago').value ?
+            parseInt(document.getElementById('alquilerPago').value) : null,
+        idCompra: tipo === 'venta' && document.getElementById('ventaPago').value ?
+            parseInt(document.getElementById('ventaPago').value) : null,
         monto: parseFloat(document.getElementById('montoPago').value),
         metodoPago: document.getElementById('metodoPago').value,
         idAdministrador: usuarioActual.idAdministrador
@@ -1372,6 +1380,52 @@ function cargarAlquileresEnSelect() {
 
     select.innerHTML = '<option value="">Seleccionar alquiler (opcional)</option>' +
         alquileresActivos.map(a => `<option value="${a.idAlquiler}">${a.ProductoNombre} - ${a.ClienteNombre}</option>`).join('');
+}
+
+function cambiarTipoTransaccion() {
+    const tipo = document.querySelector('input[name="tipoTransaccion"]:checked').value;
+    const contenedorAlquiler = document.getElementById('contenedorAlquiler');
+    const contenedorVenta = document.getElementById('contenedorVenta');
+
+    if (tipo === 'alquiler') {
+        contenedorAlquiler.classList.remove('hidden');
+        contenedorVenta.classList.add('hidden');
+        document.getElementById('ventaPago').value = '';
+    } else if (tipo === 'venta') {
+        contenedorAlquiler.classList.add('hidden');
+        contenedorVenta.classList.remove('hidden');
+        document.getElementById('alquilerPago').value = '';
+        cargarVentasEnSelect();
+    } else {
+        // Manual
+        contenedorAlquiler.classList.add('hidden');
+        contenedorVenta.classList.add('hidden');
+        document.getElementById('alquilerPago').value = '';
+        document.getElementById('ventaPago').value = '';
+    }
+}
+
+async function cargarVentas() {
+    try {
+        const respuesta = await fetch(`/ventas/?idAdministrador=${usuarioActual.idAdministrador}`);
+        const datos = await respuesta.json();
+        return datos.ventas || [];
+    } catch (error) {
+        console.error('Error al cargar ventas:', error);
+        return [];
+    }
+}
+
+function cargarVentasEnSelect() {
+    cargarVentas().then(ventas => {
+        const select = document.getElementById('ventaPago');
+        if (!select) return;
+
+        const ventasPendientes = ventas.filter(v => v.Estado === 'Pendiente' || v.Estado === 'Activa');
+
+        select.innerHTML = '<option value="">Seleccionar venta</option>' +
+            ventasPendientes.map(v => `<option value="${v.idCompra}">${v.ProductoNombre} - ${v.ClienteNombre} (L. ${v.MontoVenta})</option>`).join('');
+    });
 }
 
 document.addEventListener('click', function(evento) {

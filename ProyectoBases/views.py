@@ -575,9 +575,12 @@ def estadisticas_dashboard(request):
         SELECT COALESCE(SUM(pt.MontoTransaccion), 0) as total
         FROM pagostransacciones pt
         INNER JOIN transacciones t ON pt.idTransaccion = t.idTransaccion
+        INNER JOIN clientes c ON t.idCliente = c.idCliente
         WHERE MONTH(t.FechaTransaccion) = MONTH(CURRENT_DATE())
+        AND YEAR(t.FechaTransaccion) = YEAR(CURRENT_DATE())
+        AND c.idAdministrador = %s
     """
-    ingresos = ejecutar_query(query_ingresos, [])[0]['total'] or 0
+    ingresos = ejecutar_query(query_ingresos, [id_admin])[0]['total'] or 0
 
     query_populares = """
         SELECT p.idProducto, p.nombre, p.Precio, COUNT(pa.idAlquiler) as total_alquileres
@@ -599,8 +602,6 @@ def estadisticas_dashboard(request):
         'ingresos_mes': float(ingresos),
         'productos_populares': productos_populares
     })
-
-
 def pagina_login(request):
     from django.shortcuts import render
     return render(request, 'login.html')

@@ -36,4 +36,10 @@ urlpatterns = [
 
     path('api/login/', views.login_administrador, name='api_login'),
     path('api/registrar/', views.registrar_administrador, name='api_registrar'),
+
+    path('ventas/', views.listar_ventas, name='listar_ventas'),
+    path('ventas/crear/', views.crear_venta, name='crear_venta'),
+    path('ventas/editar/<int:venta_id>/', views.editar_venta, name='editar_venta'),
+    path('ventas/eliminar/<int:venta_id>/', views.eliminar_venta, name='eliminar_venta'),
+
 ]
