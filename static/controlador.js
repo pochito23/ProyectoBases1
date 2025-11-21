@@ -511,7 +511,7 @@ function renderizarProductos() {
                     ${p.TipoProducto}
                 </span>
             </div>
-            <h4 class="font-bold text-lg text-gray-800 mb-1">${p.Nombre}</h4>
+            <h4 class="font-bold text-lg text-gray-800 mb-1">${p.nombre}</h4>
             <p class="text-sm text-gray-600 mb-4">${p.Descripcion || 'Sin descripción'}</p>
             <div class="flex justify-between items-center pt-4 border-t border-gray-100 mb-4">
                 <div>
@@ -1156,7 +1156,7 @@ async function cargarReportes() {
                 <div class="flex items-center space-x-3">
                     <i class="fas fa-box text-2xl text-blue-400"></i>
                     <div>
-                        <p class="font-semibold text-gray-800">${p.Nombre}</p>
+                        <p class="font-semibold text-gray-800">${p.nombre}</p>
                         <p class="text-xs text-gray-500">${p.TipoProducto}</p>
                     </div>
                 </div>

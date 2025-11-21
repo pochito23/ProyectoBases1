@@ -8,8 +8,8 @@ urlpatterns = [
     path('login/', views.pagina_login, name='pagina_login'),
     path('dashboard/', views.pagina_dashboard, name='pagina_dashboard'),
 
-    # Productos
-    path('productos/<int:idAdministrador>/', views.listar_productos, name='listar_productos'),
+    # Productos - RUTAS CORREGIDAS
+    path('productos/', views.listar_productos, name='listar_productos'),
     path('productos/crear/', views.crear_producto, name='crear_producto'),
     path('productos/editar/<int:producto_id>/', views.editar_producto, name='editar_producto'),
     path('productos/eliminar/<int:producto_id>/', views.eliminar_producto, name='eliminar_producto'),
@@ -36,12 +36,10 @@ urlpatterns = [
     # Estadísticas
     path('estadisticas/', views.estadisticas_dashboard, name='estadisticas'),
 
-    #administradores
-
+    # Administradores
     path('api/login/', views.login_administrador, name='api_login'),
     path('api/registrar/', views.registrar_administrador, name='api_registrar'),
 ]
-
 """
 DOCUMENTACIÓN DE RUTAS ACTUALIZADAS:
 
