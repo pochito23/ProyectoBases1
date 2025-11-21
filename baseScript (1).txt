@@ -1,0 +1,907 @@
+CREATE DATABASE  IF NOT EXISTS `sistemaarrendamiento` /*!40100 DEFAULT CHARACTER SET utf8mb3 */ /*!80016 DEFAULT ENCRYPTION='N' */;
+USE `sistemaarrendamiento`;
+-- MySQL dump 10.13  Distrib 8.0.41, for Win64 (x86_64)
+--
+-- Host: localhost    Database: sistemaarrendamiento
+-- ------------------------------------------------------
+-- Server version	8.0.41
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!50503 SET NAMES utf8 */;
+/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
+/*!40103 SET TIME_ZONE='+00:00' */;
+/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
+/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+
+--
+-- Table structure for table `administradores`
+--
+
+DROP TABLE IF EXISTS `administradores`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `administradores` (
+  `idAdministrador` int unsigned NOT NULL AUTO_INCREMENT,
+  `Usuario` varchar(64) NOT NULL,
+  `Password` varchar(255) NOT NULL,
+  `Nombre` varchar(200) NOT NULL,
+  `Email` varchar(200) NOT NULL,
+  `FechaRegistro` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`idAdministrador`),
+  UNIQUE KEY `Usuario` (`Usuario`),
+  UNIQUE KEY `Email` (`Email`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb3;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `administradores`
+--
+
+LOCK TABLES `administradores` WRITE;
+/*!40000 ALTER TABLE `administradores` DISABLE KEYS */;
+INSERT INTO `administradores` VALUES (1,'admin','admin123','Administrador Principal','admin@sistema.com','2025-11-21 07:56:34'),(2,'Nicolas','hola123','Nicoll Ordoñez','nicol@gmail.com','2025-11-21 14:10:44');
+/*!40000 ALTER TABLE `administradores` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `categorias`
+--
+
+DROP TABLE IF EXISTS `categorias`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `categorias` (
+  `idCategoria` int unsigned NOT NULL AUTO_INCREMENT,
+  `NombreCategoria` varchar(64) NOT NULL,
+  `DescCategoria` varchar(254) DEFAULT NULL,
+  `FechaInicio` datetime DEFAULT NULL,
+  `FechaExpiracion` datetime DEFAULT NULL,
+  PRIMARY KEY (`idCategoria`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `categorias`
+--
+
+LOCK TABLES `categorias` WRITE;
+/*!40000 ALTER TABLE `categorias` DISABLE KEYS */;
+/*!40000 ALTER TABLE `categorias` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `clientes`
+--
+
+DROP TABLE IF EXISTS `clientes`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `clientes` (
+  `idCliente` int unsigned NOT NULL AUTO_INCREMENT,
+  `idPersona` int unsigned DEFAULT NULL,
+  `Tipo` varchar(45) DEFAULT NULL,
+  `EstadoPago` varchar(128) DEFAULT NULL,
+  `idAdministrador` int unsigned DEFAULT NULL,
+  PRIMARY KEY (`idCliente`),
+  KEY `idPersona_idx` (`idPersona`),
+  CONSTRAINT `Clientes_FK_idPersona` FOREIGN KEY (`idPersona`) REFERENCES `personas` (`idPersona`)
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb3;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `clientes`
+--
+
+LOCK TABLES `clientes` WRITE;
+/*!40000 ALTER TABLE `clientes` DISABLE KEYS */;
+INSERT INTO `clientes` VALUES (1,1,'Regular','Al día',NULL),(3,3,'Regular','Al día',1),(4,4,'Regular','Al día',2),(5,5,'Regular','Al dia',1);
+/*!40000 ALTER TABLE `clientes` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `empleados`
+--
+
+DROP TABLE IF EXISTS `empleados`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `empleados` (
+  `idEmpleado` int unsigned NOT NULL AUTO_INCREMENT,
+  `idPersona` int unsigned NOT NULL,
+  `Profesion` varchar(64) DEFAULT NULL,
+  `idEstacion` int unsigned DEFAULT NULL,
+  `idPuesto` int unsigned DEFAULT NULL,
+  PRIMARY KEY (`idEmpleado`),
+  UNIQUE KEY `idPersona_UNIQUE` (`idPersona`),
+  KEY `idPersona_idx` (`idPersona`),
+  KEY `Empleados_PK_idEstacion_idx` (`idEstacion`),
+  KEY `Empleados_FK_idPuesto_idx` (`idPuesto`),
+  CONSTRAINT `Empleados_FK_idEstacion` FOREIGN KEY (`idEstacion`) REFERENCES `estaciones` (`idEstacion`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT `Empleados_FK_idPuesto` FOREIGN KEY (`idPuesto`) REFERENCES `puestos` (`idPuesto`),
+  CONSTRAINT `idPersona` FOREIGN KEY (`idPersona`) REFERENCES `personas` (`idPersona`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `empleados`
+--
+
+LOCK TABLES `empleados` WRITE;
+/*!40000 ALTER TABLE `empleados` DISABLE KEYS */;
+/*!40000 ALTER TABLE `empleados` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `estaciones`
+--
+
+DROP TABLE IF EXISTS `estaciones`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `estaciones` (
+  `idEstacion` int unsigned NOT NULL AUTO_INCREMENT,
+  `Nombre` varchar(64) DEFAULT NULL,
+  `DescripcionEstacion` varchar(240) DEFAULT NULL,
+  `idAdministrador` int unsigned DEFAULT NULL,
+  PRIMARY KEY (`idEstacion`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb3;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `estaciones`
+--
+
+LOCK TABLES `estaciones` WRITE;
+/*!40000 ALTER TABLE `estaciones` DISABLE KEYS */;
+INSERT INTO `estaciones` VALUES (1,'Estacion Trapiche','Cerca de primer cancha',NULL),(2,'Estacion Trapiche','Cerca de cancha',2),(3,'hato','despensa',1);
+/*!40000 ALTER TABLE `estaciones` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `estacionesdeproductos`
+--
+
+DROP TABLE IF EXISTS `estacionesdeproductos`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `estacionesdeproductos` (
+  `idProducto` int unsigned NOT NULL,
+  `idEstacion` int unsigned NOT NULL,
+  KEY `EstacionesDeProductos_FK_idProducto_idx` (`idProducto`),
+  KEY `EstacionesDeProductos_FK_idEstacion_idx` (`idEstacion`),
+  CONSTRAINT `EstacionesDeProductos_FK_idEstacion` FOREIGN KEY (`idEstacion`) REFERENCES `estaciones` (`idEstacion`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT `EstacionesDeProductos_FK_idProducto` FOREIGN KEY (`idProducto`) REFERENCES `productos` (`idProducto`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `estacionesdeproductos`
+--
+
+LOCK TABLES `estacionesdeproductos` WRITE;
+/*!40000 ALTER TABLE `estacionesdeproductos` DISABLE KEYS */;
+/*!40000 ALTER TABLE `estacionesdeproductos` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `informacionadicional`
+--
+
+DROP TABLE IF EXISTS `informacionadicional`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `informacionadicional` (
+  `idProducto` int unsigned NOT NULL,
+  `NombreDato` varchar(64) NOT NULL,
+  `InformacionDato` varchar(240) NOT NULL,
+  KEY `  InformacionAdicional_idProducto_FK_idx` (`idProducto`),
+  CONSTRAINT `  InformacionAdicional_FK_idProducto` FOREIGN KEY (`idProducto`) REFERENCES `productos` (`idProducto`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `informacionadicional`
+--
+
+LOCK TABLES `informacionadicional` WRITE;
+/*!40000 ALTER TABLE `informacionadicional` DISABLE KEYS */;
+/*!40000 ALTER TABLE `informacionadicional` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `pagostransacciones`
+--
+
+DROP TABLE IF EXISTS `pagostransacciones`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `pagostransacciones` (
+  `idTransaccion` int unsigned NOT NULL,
+  `idCompra` int unsigned DEFAULT NULL,
+  `idAlquiler` int unsigned DEFAULT NULL,
+  `MontoTransaccion` decimal(10,2) NOT NULL,
+  `MontoManual` decimal(10,2) DEFAULT NULL,
+  `MetodoPago` varchar(224) NOT NULL,
+  UNIQUE KEY `idPago_UNIQUE` (`idTransaccion`),
+  KEY `PagoTransacciones_FK_idVenta_idx` (`idCompra`),
+  KEY `PagoTransacciones_FK_idAlquiler_idx` (`idAlquiler`),
+  CONSTRAINT `PagoTransacciones_FK_idAlquiler` FOREIGN KEY (`idAlquiler`) REFERENCES `productosarrendamiento_clientes` (`idAlquiler`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT `PagoTransacciones_FK_idCompra` FOREIGN KEY (`idCompra`) REFERENCES `productosventa_clientes` (`idCompra`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT `PagoTransacciones_FK_idTransaccion` FOREIGN KEY (`idTransaccion`) REFERENCES `transacciones` (`idTransaccion`) ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `pagostransacciones`
+--
+
+LOCK TABLES `pagostransacciones` WRITE;
+/*!40000 ALTER TABLE `pagostransacciones` DISABLE KEYS */;
+INSERT INTO `pagostransacciones` VALUES (1,NULL,3,0.00,NULL,'Efectivo'),(2,NULL,3,0.00,NULL,'Transferencia'),(3,NULL,3,0.00,NULL,'Efectivo'),(26,NULL,NULL,150.50,150.50,'Efectivo');
+/*!40000 ALTER TABLE `pagostransacciones` ENABLE KEYS */;
+UNLOCK TABLES;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `PagoTransacciones_BEFORE_INSERT` BEFORE INSERT ON `pagostransacciones` FOR EACH ROW BEGIN
+    DECLARE totalVentas DECIMAL(10,2);
+    DECLARE totalAlquileres DECIMAL(10,2);
+    DECLARE totalPago DECIMAL(10,2);
+
+    -- Si hay monto manual, usarlo directamente
+    IF NEW.MontoManual IS NOT NULL THEN
+        SET NEW.MontoTransaccion = NEW.MontoManual;
+    ELSE
+        -- Si no hay monto manual, calcular automáticamente
+        SET totalVentas = 0;
+        SET totalAlquileres = 0;
+        
+        -- Calcular ventas si hay idCompra
+        IF NEW.idCompra IS NOT NULL THEN
+            SELECT IFNULL(SUM(MontoVenta), 0)
+            INTO totalVentas
+            FROM productosventa_clientes
+            WHERE idCompra = NEW.idCompra;
+        END IF;
+        
+        -- Calcular alquileres si hay idAlquiler
+        IF NEW.idAlquiler IS NOT NULL THEN
+            SELECT IFNULL(SUM(MontoAlquiler), 0)
+            INTO totalAlquileres
+            FROM productosarrendamiento_clientes
+            WHERE idAlquiler = NEW.idAlquiler;
+        END IF;
+        
+        SET totalPago = totalVentas + totalAlquileres;
+        SET NEW.MontoTransaccion = totalPago;
+    END IF;
+END */;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `PagosTransacciones_BEFORE_UPDATE` BEFORE UPDATE ON `pagostransacciones` FOR EACH ROW BEGIN
+DECLARE totalVentas DECIMAL(10,2);
+    DECLARE totalAlquileres DECIMAL(10,2);
+    DECLARE totalPago DECIMAL(10,2);
+
+SELECT IFNULL(SUM(pvc.MontoVenta), 0)
+INTO totalVentas
+FROM PagosTransacciones pt
+JOIN ProductosVenta_Clientes pvc
+ON pvc.idCompra = pt.idCompra
+WHERE pt.idTransaccion = NEW.idTransaccion;
+
+SELECT IFNULL(SUM(pvc.MontoAlquiler), 0)
+INTO totalAlquileres
+FROM PagosTransacciones pt
+JOIN ProductosArrendamiento_Clientes pac
+ON pac.idAlquiler = pt.idAlquiler
+WHERE pt.idTransaccion = NEW.idTransaccion;
+    
+    SET totalPago = totalVentas + totalAlquileres;
+    SET NEW.MontoTransaccion = totalPago;
+END */;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+
+--
+-- Table structure for table `personas`
+--
+
+DROP TABLE IF EXISTS `personas`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `personas` (
+  `idPersona` int unsigned NOT NULL AUTO_INCREMENT,
+  `DNI` varchar(24) NOT NULL,
+  `Nombre` varchar(200) NOT NULL,
+  `Apellido` varchar(200) NOT NULL,
+  `Telefono` varchar(24) NOT NULL,
+  `Email` varchar(200) DEFAULT NULL,
+  `FechaIngreso` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `Direccion` varchar(240) DEFAULT NULL,
+  `NotasAdicionales` varchar(240) DEFAULT NULL,
+  PRIMARY KEY (`idPersona`),
+  UNIQUE KEY `DNI_UNIQUE` (`DNI`),
+  UNIQUE KEY `Email_UNIQUE` (`Email`)
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb3;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `personas`
+--
+
+LOCK TABLES `personas` WRITE;
+/*!40000 ALTER TABLE `personas` DISABLE KEYS */;
+INSERT INTO `personas` VALUES (1,'0801200503511','José Ramón','Corea Avilés','88700320','coreajose385@gmail.com','2025-11-21 07:17:28','Altos Del Trapiche',''),(3,'0801-1990-12345','Jose','Corea','9999-1111','jose@correo.com','2025-11-21 16:04:54','Tegucigalpa',''),(4,'123456','Pochito','Corea','789456','slon@gmail.com','2025-11-21 16:59:42','trapiche',''),(5,'94665165','Maria','Carmen','626523','maria@gmail.com','2025-11-21 20:30:50','hato','');
+/*!40000 ALTER TABLE `personas` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `productos`
+--
+
+DROP TABLE IF EXISTS `productos`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `productos` (
+  `idProducto` int unsigned NOT NULL AUTO_INCREMENT,
+  `nombre` varchar(64) NOT NULL,
+  `Precio` decimal(10,2) NOT NULL,
+  `Descripcion` varchar(500) DEFAULT NULL,
+  `TipoProducto` enum('Arrendamiento','Venta') DEFAULT NULL,
+  `idAdministrador` int unsigned DEFAULT NULL,
+  `Disponibles` int DEFAULT NULL,
+  PRIMARY KEY (`idProducto`) COMMENT 'PK de Productos'
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb3;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `productos`
+--
+
+LOCK TABLES `productos` WRITE;
+/*!40000 ALTER TABLE `productos` DISABLE KEYS */;
+INSERT INTO `productos` VALUES (1,'Balon',100.00,'balon para jugar','Arrendamiento',NULL,NULL),(2,'Bicicleta de Montaña',50.00,'Bicicleta para alquilar','Arrendamiento',1,10),(4,'mesas',1500.00,'mesas para alquilar','Arrendamiento',2,10),(5,'mouse',450.00,'','Venta',2,20);
+/*!40000 ALTER TABLE `productos` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `productos_categorias`
+--
+
+DROP TABLE IF EXISTS `productos_categorias`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `productos_categorias` (
+  `idCategoria` int unsigned DEFAULT NULL,
+  `idProducto` int unsigned DEFAULT NULL,
+  KEY `Productos_Categorias_PK_idx` (`idCategoria`) /*!80000 INVISIBLE */,
+  KEY `PK_Productos_Categorias` (`idProducto`),
+  CONSTRAINT `PK_Productos_Categorias` FOREIGN KEY (`idProducto`) REFERENCES `productos` (`idProducto`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT `Productos_Categorias_PK` FOREIGN KEY (`idCategoria`) REFERENCES `categorias` (`idCategoria`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `productos_categorias`
+--
+
+LOCK TABLES `productos_categorias` WRITE;
+/*!40000 ALTER TABLE `productos_categorias` DISABLE KEYS */;
+/*!40000 ALTER TABLE `productos_categorias` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `productosarrendamiento`
+--
+
+DROP TABLE IF EXISTS `productosarrendamiento`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `productosarrendamiento` (
+  `idProductoArrendamiento` int unsigned NOT NULL AUTO_INCREMENT,
+  `idProducto` int unsigned NOT NULL,
+  `UnidadTiempo` varchar(24) DEFAULT NULL,
+  `Estado` varchar(45) DEFAULT NULL,
+  `HorarioDisponibilidad` varchar(240) DEFAULT NULL,
+  `PagoInicial` decimal(10,2) DEFAULT NULL,
+  `PagoDeposito` decimal(10,2) DEFAULT NULL,
+  PRIMARY KEY (`idProductoArrendamiento`),
+  UNIQUE KEY `idProducto_UNIQUE` (`idProducto`),
+  KEY `ProductosArrendamiento_idProducto_FK_idx` (`idProducto`),
+  CONSTRAINT `ProductosArrendamiento_FK_idProducto` FOREIGN KEY (`idProducto`) REFERENCES `productos` (`idProducto`) ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb3;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `productosarrendamiento`
+--
+
+LOCK TABLES `productosarrendamiento` WRITE;
+/*!40000 ALTER TABLE `productosarrendamiento` DISABLE KEYS */;
+INSERT INTO `productosarrendamiento` VALUES (1,1,'Día','Disponible','24/7',NULL,NULL),(2,4,'Día','Disponible','24/7',NULL,NULL);
+/*!40000 ALTER TABLE `productosarrendamiento` ENABLE KEYS */;
+UNLOCK TABLES;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `ProductosArrendamiento_BEFORE_INSERT` BEFORE INSERT ON `productosarrendamiento` FOR EACH ROW BEGIN
+IF EXISTS (SELECT 1 FROM ProductosVenta WHERE idProducto = NEW.idProducto) THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'ERROR: El producto ya está clasificado como producto de venta.';
+END IF;
+END */;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `ProductosArrendamiento_BEFORE_UPDATE` BEFORE UPDATE ON `productosarrendamiento` FOR EACH ROW BEGIN
+IF EXISTS (SELECT 1 FROM ProductosVenta WHERE idProducto = NEW.idProducto) THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'ERROR: El producto ya está clasificado como producto de venta.';
+END IF;
+END */;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+
+--
+-- Table structure for table `productosarrendamiento_clientes`
+--
+
+DROP TABLE IF EXISTS `productosarrendamiento_clientes`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `productosarrendamiento_clientes` (
+  `idAlquiler` int unsigned NOT NULL AUTO_INCREMENT,
+  `idCliente` int unsigned NOT NULL,
+  `idProductoArrendamiento` int unsigned NOT NULL,
+  `FechaCorte` datetime NOT NULL,
+  `FechaInicio` datetime NOT NULL,
+  `CantidadAlquilada` decimal(10,1) NOT NULL,
+  `PagoInicial` decimal(10,2) DEFAULT NULL,
+  `PagoDeposito` decimal(10,2) DEFAULT NULL,
+  `MontoAlquiler` decimal(10,2) DEFAULT NULL,
+  `Estado` enum('Pendiente','Activo','Realizado') DEFAULT NULL,
+  `idAdministrador` int unsigned DEFAULT NULL,
+  PRIMARY KEY (`idAlquiler`),
+  KEY `FK_ProductosArrendamiento_Clientes_idx` (`idProductoArrendamiento`),
+  KEY `ProductosArrendamiento_Clientes_FK` (`idCliente`),
+  CONSTRAINT `FK_ProductosArrendamiento_Clientes` FOREIGN KEY (`idProductoArrendamiento`) REFERENCES `productosarrendamiento` (`idProductoArrendamiento`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT `ProductosArrendamiento_Clientes_FK` FOREIGN KEY (`idCliente`) REFERENCES `clientes` (`idCliente`) ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb3;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `productosarrendamiento_clientes`
+--
+
+LOCK TABLES `productosarrendamiento_clientes` WRITE;
+/*!40000 ALTER TABLE `productosarrendamiento_clientes` DISABLE KEYS */;
+INSERT INTO `productosarrendamiento_clientes` VALUES (3,4,2,'2025-11-24 00:00:00','2025-11-21 00:00:00',1.0,1000.00,1000.00,1500.00,'Activo',2),(4,4,2,'2025-11-30 00:00:00','2025-11-29 00:00:00',1.0,1000.00,500.00,1500.00,'Pendiente',2);
+/*!40000 ALTER TABLE `productosarrendamiento_clientes` ENABLE KEYS */;
+UNLOCK TABLES;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `ProductosArrendamiento_Clientes_BEFORE_INSERT` BEFORE INSERT ON `productosarrendamiento_clientes` FOR EACH ROW BEGIN
+    SELECT p.Precio INTO @precio
+    FROM ProductosArrendamiento pa
+    JOIN Productos p ON pa.idProducto = p.idProducto
+    WHERE pa.idProductoArrendamiento = NEW.idProductoArrendamiento;
+    SET NEW.MontoAlquiler = NEW.CantidadAlquilada * @precio;
+    
+    IF NEW.fechaInicio > NOW() THEN
+        SET NEW.Estado = 'Pendiente';
+    ELSEIF NEW.fechaInicio <= NOW() AND NEW.fechaCorte >= NOW() THEN
+        SET NEW.Estado = 'Activo';
+    ELSE
+        SET NEW.Estado = 'Realizado';
+    END IF;
+END */;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `ProductosArrendamiento_Clientes_BEFORE_UPDATE` BEFORE UPDATE ON `productosarrendamiento_clientes` FOR EACH ROW BEGIN
+ SELECT p.Precio INTO @precio
+    FROM ProductosArrendamiento pa
+    JOIN Productos p ON pa.idProducto = p.idProducto
+    WHERE pa.idProductoArrendamiento = NEW.idProductoArrendamiento;
+    SET NEW.MontoAlquiler = NEW.CantidadAlquilada * @precio;
+    
+    IF NEW.fechaInicio > NOW() THEN
+        SET NEW.Estado = 'Pendiente';
+    ELSEIF NEW.fechaInicio <= NOW() AND NEW.fechaCorte >= NOW() THEN
+        SET NEW.Estado = 'Activo';
+    ELSE
+        SET NEW.Estado = 'Realizado';
+    END IF;
+END */;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+
+--
+-- Table structure for table `productosventa`
+--
+
+DROP TABLE IF EXISTS `productosventa`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `productosventa` (
+  `idProductoVenta` int unsigned NOT NULL AUTO_INCREMENT,
+  `idProducto` int unsigned NOT NULL,
+  `CodigoBarras` varchar(24) NOT NULL,
+  `Disponibles` int NOT NULL,
+  PRIMARY KEY (`idProductoVenta`),
+  UNIQUE KEY `idProducto_UNIQUE` (`idProducto`),
+  UNIQUE KEY `CodigoBarras_UNIQUE` (`CodigoBarras`),
+  CONSTRAINT `ProductosVenta_FK_idProductos` FOREIGN KEY (`idProducto`) REFERENCES `productos` (`idProducto`) ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `productosventa`
+--
+
+LOCK TABLES `productosventa` WRITE;
+/*!40000 ALTER TABLE `productosventa` DISABLE KEYS */;
+/*!40000 ALTER TABLE `productosventa` ENABLE KEYS */;
+UNLOCK TABLES;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `ProductosVenta_BEFORE_INSERT` BEFORE INSERT ON `productosventa` FOR EACH ROW BEGIN
+IF EXISTS (SELECT 1 FROM ProductosArrendamiento WHERE idProducto = NEW.idProducto) THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'ERROR: El producto ya está clasificado como producto de arrendamiento.';
+END IF;
+END */;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `ProductosVenta_BEFORE_UPDATE` BEFORE UPDATE ON `productosventa` FOR EACH ROW BEGIN
+IF EXISTS (SELECT 1 FROM ProductosArrendamiento WHERE idProducto = NEW.idProducto) THEN
+    SIGNAL SQLSTATE '45000'
+    SET MESSAGE_TEXT = 'ERROR: El producto ya está clasificado como producto de arrendamiento.';
+END IF;
+END */;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+
+--
+-- Table structure for table `productosventa_clientes`
+--
+
+DROP TABLE IF EXISTS `productosventa_clientes`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `productosventa_clientes` (
+  `idCompra` int unsigned NOT NULL AUTO_INCREMENT,
+  `idCliente` int unsigned NOT NULL,
+  `idProductoVenta` int unsigned NOT NULL,
+  `CantidadProducto` int NOT NULL,
+  `MontoVenta` decimal(10,2) NOT NULL,
+  PRIMARY KEY (`idCompra`) COMMENT 'PK de ProductosVenta_Clientes (idCompras)',
+  KEY `ProductosVenta_Clientes_FK_idx` (`idCliente`),
+  KEY `ProductosVenta_FK_Clientes_idx` (`idProductoVenta`),
+  CONSTRAINT `FK_ProductosVenta_Clientes` FOREIGN KEY (`idProductoVenta`) REFERENCES `productosventa` (`idProductoVenta`),
+  CONSTRAINT `ProductosVenta_Clientes_FK` FOREIGN KEY (`idCliente`) REFERENCES `clientes` (`idCliente`) ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `productosventa_clientes`
+--
+
+LOCK TABLES `productosventa_clientes` WRITE;
+/*!40000 ALTER TABLE `productosventa_clientes` DISABLE KEYS */;
+/*!40000 ALTER TABLE `productosventa_clientes` ENABLE KEYS */;
+UNLOCK TABLES;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `ProductosVenta_Clientes_BEFORE_INSERT` BEFORE INSERT ON `productosventa_clientes` FOR EACH ROW BEGIN
+-- Reduccion de Disponibles
+DECLARE stock_actual INT;
+
+    SELECT Disponibles
+    INTO stock_actual
+    FROM ProductosVenta
+    WHERE idProducto = NEW.idProductoVenta;
+
+    IF stock_actual < NEW.CantidadProducto THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Error: No hay suficientes unidades disponibles para esta venta';
+    END IF;
+
+    UPDATE ProductosVenta
+    SET Disponibles = Disponibles - NEW.CantidadProducto
+    WHERE idProducto = NEW.idProductoVenta;
+    
+    -- Calculo de CantidadPagar
+	SELECT p.Precio INTO @precio
+    FROM ProductosVenta pv
+    JOIN Productos p ON pv.idProducto = p.idProducto
+    WHERE pv.idProductoVenta = NEW.idProductoVenta;
+    SET NEW.MontoVenta = NEW.CantidadProducto * @precio;
+END */;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_0900_ai_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `ProductosVenta_Clientes_BEFORE_UPDATE` BEFORE UPDATE ON `productosventa_clientes` FOR EACH ROW BEGIN
+ -- Reduccion de Disponibles
+DECLARE stock_actual INT;
+
+    SELECT Disponibles
+    INTO stock_actual
+    FROM ProductosVenta
+    WHERE idProducto = NEW.idProductoVenta;
+
+    IF stock_actual < NEW.CantidadProducto THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Error: No hay suficientes unidades disponibles para esta venta';
+    END IF;
+
+    UPDATE ProductosVenta
+    SET Disponibles = Disponibles - NEW.CantidadProducto
+    WHERE idProducto = NEW.idProductoVenta;
+    
+    -- Calculo de CantidadPagar
+	SELECT p.Precio INTO @precio
+    FROM ProductosVenta pv
+    JOIN Productos p ON pv.idProducto = p.idProducto
+    WHERE pv.idProductoVenta = NEW.idProductoVenta;
+    SET NEW.MontoVenta = NEW.CantidadProducto * @precio;
+END */;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+
+--
+-- Table structure for table `puestos`
+--
+
+DROP TABLE IF EXISTS `puestos`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `puestos` (
+  `idPuesto` int unsigned NOT NULL AUTO_INCREMENT,
+  `Nombre` varchar(64) NOT NULL,
+  `Salario` decimal(10,2) NOT NULL,
+  `UnidadSalario` varchar(24) NOT NULL,
+  `Requisitos` varchar(240) DEFAULT NULL,
+  PRIMARY KEY (`idPuesto`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `puestos`
+--
+
+LOCK TABLES `puestos` WRITE;
+/*!40000 ALTER TABLE `puestos` DISABLE KEYS */;
+/*!40000 ALTER TABLE `puestos` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `transacciones`
+--
+
+DROP TABLE IF EXISTS `transacciones`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `transacciones` (
+  `idTransaccion` int unsigned NOT NULL AUTO_INCREMENT,
+  `idCliente` int unsigned NOT NULL,
+  `FechaTransaccion` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`idTransaccion`),
+  KEY `Pagos_FK_idCliente_idx` (`idCliente`),
+  CONSTRAINT `Pagos_FK_idCliente` FOREIGN KEY (`idCliente`) REFERENCES `clientes` (`idCliente`) ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE=InnoDB AUTO_INCREMENT=27 DEFAULT CHARSET=utf8mb3;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `transacciones`
+--
+
+LOCK TABLES `transacciones` WRITE;
+/*!40000 ALTER TABLE `transacciones` DISABLE KEYS */;
+INSERT INTO `transacciones` VALUES (1,4,'2025-11-21 11:02:03'),(2,4,'2025-11-21 12:46:06'),(3,4,'2025-11-21 13:08:47'),(4,4,'2025-11-21 13:35:42'),(5,4,'2025-11-21 13:35:44'),(6,4,'2025-11-21 13:35:44'),(7,4,'2025-11-21 13:35:44'),(8,4,'2025-11-21 13:35:44'),(9,4,'2025-11-21 13:35:45'),(10,4,'2025-11-21 13:35:45'),(11,4,'2025-11-21 13:35:45'),(12,4,'2025-11-21 13:35:45'),(13,4,'2025-11-21 13:35:45'),(14,4,'2025-11-21 13:35:45'),(15,4,'2025-11-21 13:35:46'),(16,4,'2025-11-21 13:35:46'),(17,4,'2025-11-21 13:35:46'),(18,4,'2025-11-21 13:35:46'),(19,4,'2025-11-21 13:35:46'),(20,4,'2025-11-21 13:35:46'),(21,4,'2025-11-21 13:35:47'),(22,4,'2025-11-21 13:35:47'),(23,4,'2025-11-21 13:35:47'),(24,1,'2025-11-21 13:37:31'),(25,1,'2025-11-21 13:38:22'),(26,1,'2025-11-21 13:39:24');
+/*!40000 ALTER TABLE `transacciones` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Temporary view structure for view `vista_categorias_con_productos`
+--
+
+DROP TABLE IF EXISTS `vista_categorias_con_productos`;
+/*!50001 DROP VIEW IF EXISTS `vista_categorias_con_productos`*/;
+SET @saved_cs_client     = @@character_set_client;
+/*!50503 SET character_set_client = utf8mb4 */;
+/*!50001 CREATE VIEW `vista_categorias_con_productos` AS SELECT 
+ 1 AS `idCategoria`,
+ 1 AS `NombreCategoria`,
+ 1 AS `DescCategoria`,
+ 1 AS `FechaInicio`,
+ 1 AS `FechaExpiracion`,
+ 1 AS `idProducto`,
+ 1 AS `nombre`,
+ 1 AS `precio`,
+ 1 AS `TipoProducto`*/;
+SET character_set_client = @saved_cs_client;
+
+--
+-- Temporary view structure for view `vista_productos_alldata`
+--
+
+DROP TABLE IF EXISTS `vista_productos_alldata`;
+/*!50001 DROP VIEW IF EXISTS `vista_productos_alldata`*/;
+SET @saved_cs_client     = @@character_set_client;
+/*!50503 SET character_set_client = utf8mb4 */;
+/*!50001 CREATE VIEW `vista_productos_alldata` AS SELECT 
+ 1 AS `idProducto`,
+ 1 AS `NombreProducto`,
+ 1 AS `Precio`,
+ 1 AS `Descripcion`,
+ 1 AS `TipoProducto`,
+ 1 AS `NombreDato`,
+ 1 AS `InformacionDato`,
+ 1 AS `idEstacion`*/;
+SET character_set_client = @saved_cs_client;
+
+--
+-- Dumping events for database 'sistemaarrendamiento'
+--
+
+--
+-- Dumping routines for database 'sistemaarrendamiento'
+--
+
+--
+-- Final view structure for view `vista_categorias_con_productos`
+--
+
+/*!50001 DROP VIEW IF EXISTS `vista_categorias_con_productos`*/;
+/*!50001 SET @saved_cs_client          = @@character_set_client */;
+/*!50001 SET @saved_cs_results         = @@character_set_results */;
+/*!50001 SET @saved_col_connection     = @@collation_connection */;
+/*!50001 SET character_set_client      = utf8mb4 */;
+/*!50001 SET character_set_results     = utf8mb4 */;
+/*!50001 SET collation_connection      = utf8mb4_0900_ai_ci */;
+/*!50001 CREATE ALGORITHM=UNDEFINED */
+/*!50013 DEFINER=`root`@`localhost` SQL SECURITY DEFINER */
+/*!50001 VIEW `vista_categorias_con_productos` AS select `c`.`idCategoria` AS `idCategoria`,`c`.`NombreCategoria` AS `NombreCategoria`,`c`.`DescCategoria` AS `DescCategoria`,`c`.`FechaInicio` AS `FechaInicio`,`c`.`FechaExpiracion` AS `FechaExpiracion`,`p`.`idProducto` AS `idProducto`,`p`.`nombre` AS `nombre`,`p`.`Precio` AS `precio`,`p`.`TipoProducto` AS `TipoProducto` from ((`categorias` `c` left join `productos_categorias` `pc` on((`c`.`idCategoria` = `pc`.`idCategoria`))) left join `productos` `p` on((`pc`.`idProducto` = `p`.`idProducto`))) */;
+/*!50001 SET character_set_client      = @saved_cs_client */;
+/*!50001 SET character_set_results     = @saved_cs_results */;
+/*!50001 SET collation_connection      = @saved_col_connection */;
+
+--
+-- Final view structure for view `vista_productos_alldata`
+--
+
+/*!50001 DROP VIEW IF EXISTS `vista_productos_alldata`*/;
+/*!50001 SET @saved_cs_client          = @@character_set_client */;
+/*!50001 SET @saved_cs_results         = @@character_set_results */;
+/*!50001 SET @saved_col_connection     = @@collation_connection */;
+/*!50001 SET character_set_client      = utf8mb4 */;
+/*!50001 SET character_set_results     = utf8mb4 */;
+/*!50001 SET collation_connection      = utf8mb4_0900_ai_ci */;
+/*!50001 CREATE ALGORITHM=UNDEFINED */
+/*!50013 DEFINER=`root`@`localhost` SQL SECURITY DEFINER */
+/*!50001 VIEW `vista_productos_alldata` AS select `productos`.`idProducto` AS `idProducto`,`productos`.`nombre` AS `NombreProducto`,`productos`.`Precio` AS `Precio`,`productos`.`Descripcion` AS `Descripcion`,`productos`.`TipoProducto` AS `TipoProducto`,`informacionadicional`.`NombreDato` AS `NombreDato`,`informacionadicional`.`InformacionDato` AS `InformacionDato`,`estacionesdeproductos`.`idEstacion` AS `idEstacion` from ((`productos` left join `informacionadicional` on((`productos`.`idProducto` = `informacionadicional`.`idProducto`))) left join `estacionesdeproductos` on((`productos`.`idProducto` = `estacionesdeproductos`.`idProducto`))) */;
+/*!50001 SET character_set_client      = @saved_cs_client */;
+/*!50001 SET character_set_results     = @saved_cs_results */;
+/*!50001 SET collation_connection      = @saved_col_connection */;
+/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
+
+/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
+/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+
+-- Dump completed on 2025-11-21 14:33:50
