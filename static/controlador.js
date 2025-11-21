@@ -7,6 +7,7 @@ let clientes = [];
 let alquileres = [];
 let pagos = [];
 let estaciones = [];
+let ventas = []
 
 // INICIALIZACIÓN
 document.addEventListener('DOMContentLoaded', function() {
@@ -154,7 +155,8 @@ async function cargarDatosIniciales() {
         cargarProductos(),
         cargarClientes(),
         cargarAlquileres(),
-        cargarEstaciones()
+        cargarEstaciones(),
+        cargarVentas()
     ]);
 }
 
@@ -240,6 +242,10 @@ function mostrarSeccion(seccion) {
         case 'alquileres':
             contenedor.innerHTML = obtenerHTMLAlquileres();
             renderizarAlquileres();
+            break;
+                    case 'ventas':
+            contenedor.innerHTML = obtenerHTMLVentas();
+            renderizarVentas();
             break;
         case 'clientes':
             contenedor.innerHTML = obtenerHTMLClientes();
@@ -820,7 +826,148 @@ function renderizarAlquileres() {
         `;
     }).join('');
 }
+async function cargarVentas() {
+    try {
+        const respuesta = await fetch(`/ventas/?idAdministrador=${usuarioActual.idAdministrador}`);
+        const datos = await respuesta.json();
+        ventas = datos.ventas || [];
+    } catch (error) {
+        console.error('Error al cargar ventas:', error);
+        ventas = [];
+    }
+}
 
+// Función para obtener HTML de ventas
+function obtenerHTMLVentas() {
+    return `
+        <div class="mb-6 flex justify-between items-center">
+            <div>
+                <h2 class="text-3xl font-bold text-gray-800">
+                    <i class="fas fa-shopping-cart mr-2"></i>Ventas
+                </h2>
+                <p class="text-gray-500 mt-1">Historial de ventas realizadas</p>
+            </div>
+            <button onclick="abrirModal('modalVenta')" class="px-6 py-3 rounded-xl text-white font-semibold shadow-lg" style="background: linear-gradient(135deg, #10b981, #059669);">
+                <i class="fas fa-plus mr-2"></i>Nueva Venta
+            </button>
+        </div>
+        <div class="bg-white rounded-2xl p-6 shadow-lg">
+            <div id="listaVentas" class="space-y-4"></div>
+        </div>
+    `;
+}
+
+function renderizarVentas() {
+    const contenedor = document.getElementById('listaVentas');
+
+    if (ventas.length === 0) {
+        contenedor.innerHTML = '<p class="text-gray-500 text-center py-8">No hay ventas registradas</p>';
+        return;
+    }
+
+    contenedor.innerHTML = ventas.map(v => `
+        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all">
+            <div class="flex items-center space-x-4 flex-1">
+                <div class="w-12 h-12 bg-gradient-to-br from-green-300 to-emerald-300 rounded-lg flex items-center justify-center text-xl text-white">
+                    <i class="fas fa-shopping-bag"></i>
+                </div>
+                <div>
+                    <p class="font-semibold text-gray-800">${v.ProductoNombre}</p>
+                    <p class="text-sm text-gray-500">Cliente: ${v.ClienteNombre}</p>
+                    <p class="text-xs text-gray-400">Cantidad: ${v.CantidadProducto} | Código: ${v.CodigoBarras}</p>
+                </div>
+            </div>
+            <div class="text-right mr-4">
+                <span class="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">${v.Estado}</span>
+                <p class="text-sm text-gray-600 mt-2">Total: <strong>L. ${parseFloat(v.MontoVenta || 0).toFixed(2)}</strong></p>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="eliminarVenta(${v.idCompra})" class="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all text-sm">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+async function guardarVenta(evento) {
+    evento.preventDefault();
+
+    const datos = {
+        idCliente: parseInt(document.getElementById('clienteVenta').value),
+        idProducto: parseInt(document.getElementById('productoVenta').value),
+        cantidad: parseInt(document.getElementById('cantidadVenta').value),
+        idAdministrador: usuarioActual.idAdministrador
+    };
+
+    try {
+        const respuesta = await fetch('/ventas/crear/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(datos)
+        });
+
+        if (respuesta.ok) {
+            const resultado = await respuesta.json();
+            mostrarNotificacion(`Venta registrada exitosamente. Total: L. ${resultado.monto_total.toFixed(2)}`, 'success');
+            cerrarModal('modalVenta');
+            await cargarVentas();
+            await cargarProductos(); // Recargar productos para actualizar stock
+            if (seccionActual === 'ventas') renderizarVentas();
+            if (seccionActual === 'productos') renderizarProductos();
+            if (seccionActual === 'dashboard') cargarEstadisticas();
+        } else {
+            const error = await respuesta.json();
+            mostrarNotificacion('Error al registrar venta: ' + (error.error || 'Error desconocido'), 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarNotificacion('Error de conexión', 'error');
+    }
+}
+
+async function eliminarVenta(id) {
+    if (!confirm('¿Estás seguro de eliminar esta venta? El stock será restaurado.')) return;
+
+    try {
+        const respuesta = await fetch(`/ventas/eliminar/${id}/?idAdministrador=${usuarioActual.idAdministrador}`, {
+            method: 'DELETE'
+        });
+
+        if (respuesta.ok) {
+            mostrarNotificacion('Venta eliminada y stock restaurado', 'success');
+            await cargarVentas();
+            await cargarProductos();
+            if (seccionActual === 'ventas') renderizarVentas();
+            if (seccionActual === 'productos') renderizarProductos();
+            if (seccionActual === 'dashboard') cargarEstadisticas();
+        } else {
+            const error = await respuesta.json();
+            mostrarNotificacion('Error al eliminar venta: ' + (error.error || 'Error desconocido'), 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarNotificacion('Error de conexión', 'error');
+    }
+}
+
+function cargarClientesEnSelectVenta() {
+    const select = document.getElementById('clienteVenta');
+    if (!select) return;
+
+    select.innerHTML = '<option value="">Seleccionar cliente</option>' +
+        clientes.map(c => `<option value="${c.idCliente}">${c.NombreCompleto}</option>`).join('');
+}
+
+function cargarProductosVentaEnSelect() {
+    const select = document.getElementById('productoVenta');
+    if (!select) return;
+
+    const productosVenta = productos.filter(p => p.TipoProducto === 'Venta' && p.Disponibles > 0);
+
+    select.innerHTML = '<option value="">Seleccionar producto</option>' +
+        productosVenta.map(p => `<option value="${p.idProducto}">${p.nombre} - L. ${p.Precio} (${p.Disponibles} disponibles)</option>`).join('');
+}
 async function guardarAlquiler(evento) {
     evento.preventDefault();
 
@@ -1308,6 +1455,10 @@ function abrirModal(idModal) {
     if (idModal === 'modalAlquiler') {
         cargarClientesEnSelect();
         cargarProductosEnSelect();
+    }
+      if (idModal === 'modalVenta') {
+        cargarClientesEnSelectVenta();
+        cargarProductosVentaEnSelect();
     }
 
     if (idModal === 'modalPago') {

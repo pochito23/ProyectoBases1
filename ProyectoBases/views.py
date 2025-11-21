@@ -387,6 +387,187 @@ def eliminar_alquiler(request, alquiler_id):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
+
+
+@csrf_exempt
+def listar_ventas(request):
+    id_admin = request.GET.get('idAdministrador')
+    if not id_admin:
+        return JsonResponse({'error': 'ID de administrador requerido'}, status=400)
+
+    query = """
+            SELECT pvc.idCompra, \
+                   pvc.CantidadProducto, \
+                   pvc.MontoVenta,
+                   p.nombre                              as ProductoNombre, \
+                   p.Precio,
+                   CONCAT(per.Nombre, ' ', per.Apellido) as ClienteNombre,
+                   pv.CodigoBarras,
+                   'Completada'                          as Estado
+            FROM productosventa_clientes pvc
+                     INNER JOIN productosventa pv ON pvc.idProductoVenta = pv.idProductoVenta
+                     INNER JOIN productos p ON pv.idProducto = p.idProducto
+                     INNER JOIN clientes c ON pvc.idCliente = c.idCliente
+                     INNER JOIN personas per ON c.idPersona = per.idPersona
+            WHERE p.idAdministrador = %s
+            ORDER BY pvc.idCompra DESC \
+            """
+    ventas = ejecutar_query(query, [id_admin])
+    return JsonResponse({'ventas': ventas}, safe=False)
+
+
+@csrf_exempt
+def crear_venta(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Metodo no permitido'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+
+        query_producto = """
+                         SELECT p.idProducto, p.Disponibles, p.Precio, pv.idProductoVenta
+                         FROM productos p
+                                  INNER JOIN productosventa pv ON p.idProducto = pv.idProducto
+                         WHERE p.idProducto = %s \
+                           AND p.idAdministrador = %s \
+                           AND p.TipoProducto = 'Venta' \
+                         """
+        resultado = ejecutar_query(query_producto, [data.get('idProducto'), data.get('idAdministrador')])
+
+        if not resultado:
+            return JsonResponse({'error': 'Producto no encontrado o no es de venta'}, status=404)
+
+        producto = resultado[0]
+        cantidad = int(data.get('cantidad', 1))
+
+        if producto['Disponibles'] < cantidad:
+            return JsonResponse({'error': f'Stock insuficiente. Solo hay {producto["Disponibles"]} disponibles'},
+                                status=400)
+
+        monto_total = float(producto['Precio']) * cantidad
+
+        query_venta = """
+                      INSERT INTO productosventa_clientes
+                          (idCliente, idProductoVenta, CantidadProducto, MontoVenta)
+                      VALUES (%s, %s, %s, %s) \
+                      """
+        params = [
+            data.get('idCliente'),
+            producto['idProductoVenta'],
+            cantidad,
+            monto_total
+        ]
+        venta_id = ejecutar_insert(query_venta, params)
+
+        query_update_stock = """
+                             UPDATE productos
+                             SET Disponibles = Disponibles - %s
+                             WHERE idProducto = %s \
+                             """
+        ejecutar_insert(query_update_stock, [cantidad, data.get('idProducto')])
+
+        return JsonResponse({
+            'mensaje': 'Venta registrada exitosamente',
+            'id': venta_id,
+            'monto_total': monto_total
+        }, status=201)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+def editar_venta(request, venta_id):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Metodo no permitido'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+
+        query_venta_actual = """
+                             SELECT pvc.CantidadProducto, pv.idProducto
+                             FROM productosventa_clientes pvc
+                                      INNER JOIN productosventa pv ON pvc.idProductoVenta = pv.idProductoVenta
+                             WHERE pvc.idCompra = %s \
+                             """
+        venta_actual = ejecutar_query(query_venta_actual, [venta_id])
+
+        if not venta_actual:
+            return JsonResponse({'error': 'Venta no encontrada'}, status=404)
+
+        cantidad_anterior = venta_actual[0]['CantidadProducto']
+        id_producto = venta_actual[0]['idProducto']
+        nueva_cantidad = int(data.get('cantidad', cantidad_anterior))
+
+        query_devolver = """
+                         UPDATE productos
+                         SET Disponibles = Disponibles + %s
+                         WHERE idProducto = %s \
+                         """
+        ejecutar_insert(query_devolver, [cantidad_anterior, id_producto])
+
+        query_stock = "SELECT Disponibles, Precio FROM productos WHERE idProducto = %s"
+        producto = ejecutar_query(query_stock, [id_producto])[0]
+
+        if producto['Disponibles'] < nueva_cantidad:
+            # Revertir la devolución
+            ejecutar_insert(query_devolver, [-cantidad_anterior, id_producto])
+            return JsonResponse({'error': 'Stock insuficiente'}, status=400)
+
+        nuevo_monto = float(producto['Precio']) * nueva_cantidad
+
+        query_update = """
+                       UPDATE productosventa_clientes
+                       SET CantidadProducto = %s, \
+                           MontoVenta       = %s
+                       WHERE idCompra = %s \
+                       """
+        ejecutar_insert(query_update, [nueva_cantidad, nuevo_monto, venta_id])
+
+        query_descontar = """
+                          UPDATE productos
+                          SET Disponibles = Disponibles - %s
+                          WHERE idProducto = %s \
+                          """
+        ejecutar_insert(query_descontar, [nueva_cantidad, id_producto])
+
+        return JsonResponse({'mensaje': 'Venta actualizada exitosamente'}, status=200)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@csrf_exempt
+def eliminar_venta(request, venta_id):
+    if request.method != 'DELETE':
+        return JsonResponse({'error': 'Metodo no permitido'}, status=405)
+
+    try:
+        query_venta = """
+                      SELECT pvc.CantidadProducto, pv.idProducto
+                      FROM productosventa_clientes pvc
+                               INNER JOIN productosventa pv ON pvc.idProductoVenta = pv.idProductoVenta
+                      WHERE pvc.idCompra = %s \
+                      """
+        venta = ejecutar_query(query_venta, [venta_id])
+
+        if not venta:
+            return JsonResponse({'error': 'Venta no encontrada'}, status=404)
+
+        query_devolver = """
+                         UPDATE productos
+                         SET Disponibles = Disponibles + %s
+                         WHERE idProducto = %s \
+                         """
+        ejecutar_insert(query_devolver, [venta[0]['CantidadProducto'], venta[0]['idProducto']])
+
+        query_delete = "DELETE FROM productosventa_clientes WHERE idCompra = %s"
+        ejecutar_insert(query_delete, [venta_id])
+
+        return JsonResponse({'mensaje': 'Venta eliminada y stock restaurado'}, status=200)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 @csrf_exempt
 def listar_pagos(request):
         id_admin = request.GET.get('idAdministrador')
@@ -610,3 +791,5 @@ def pagina_login(request):
 def pagina_dashboard(request):
     from django.shortcuts import render
     return render(request, 'dashboard.html')
+
+
