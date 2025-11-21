@@ -395,8 +395,8 @@ def listar_pagos(request):
 
         query = """
                 SELECT pt.idTransaccion, \
-                       pt.MontoTransaccion               as Monto, \
-                       t.FechaTransaccion                as FechaPago,
+                       pt.MontoTransaccion as Monto, \
+                       t.FechaTransaccion as FechaPago,
                        pt.MetodoPago, \
                        CONCAT(p.Nombre, ' ', p.Apellido) as Cliente
                 FROM pagostransacciones pt
@@ -423,18 +423,15 @@ def registrar_pago(request):
         if not data.get('idCliente'):
             return JsonResponse({'error': 'Cliente es requerido'}, status=400)
 
-        # Insertar transacción - CORREGIDO: usar parámetros correctamente
         query_transaccion = "INSERT INTO transacciones (idCliente, FechaTransaccion) VALUES (%s, NOW())"
         transaccion_id = ejecutar_insert(query_transaccion, [data.get('idCliente')])
 
-        # Insertar pago - CORREGIDO: asegurar que los valores sean correctos
         query_pago = """
                      INSERT INTO pagostransacciones
                          (idTransaccion, idAlquiler, idCompra, MontoManual, MetodoPago)
-                     VALUES (%s, %s, %s, %s, %s) \
+                     VALUES (%s, %s, %s, %s, %s) 
                      """
 
-        # Convertir valores a los tipos correctos
         id_alquiler = data.get('idAlquiler')
         id_compra = data.get('idCompra')
         monto_manual = data.get('monto')
