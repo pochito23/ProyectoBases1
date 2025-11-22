@@ -1064,7 +1064,7 @@ function renderizarPagos() {
 
     contenedor.innerHTML = pagos.map(p => `
         <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all">
-            <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-4 flex-1">
                 <div class="w-12 h-12 bg-gradient-to-br from-green-300 to-blue-300 rounded-lg flex items-center justify-center text-xl text-white">
                     <i class="fas fa-dollar-sign"></i>
                 </div>
@@ -1072,10 +1072,23 @@ function renderizarPagos() {
                     <p class="font-semibold text-gray-800">${p.Cliente || 'Cliente no especificado'}</p>
                     <p class="text-sm text-gray-500">Método: ${p.MetodoPago}</p>
                     <p class="text-xs text-gray-400">${new Date(p.FechaPago).toLocaleDateString('es-HN')}</p>
+                    <span class="text-xs px-2 py-1 rounded-full ${
+                        p.TipoTransaccion === 'Alquiler' ? 'bg-blue-100 text-blue-700' : 
+                        p.TipoTransaccion === 'Venta' ? 'bg-green-100 text-green-700' : 
+                        'bg-gray-100 text-gray-700'
+                    }">${p.TipoTransaccion}</span>
                 </div>
             </div>
-            <div class="text-right">
+            <div class="text-right mr-4">
                 <p class="text-2xl font-bold text-green-600">L. ${parseFloat(p.Monto || 0).toFixed(2)}</p>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="editarPago(${p.idTransaccion})" class="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all text-sm">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button onclick="eliminarPago(${p.idTransaccion})" class="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all text-sm">
+                    <i class="fas fa-trash"></i>
+                </button>
             </div>
         </div>
     `).join('');
@@ -1084,40 +1097,119 @@ function renderizarPagos() {
 async function guardarPago(evento) {
     evento.preventDefault();
 
-    const tipo = document.querySelector('input[name="tipoTransaccion"]:checked').value;
+    const idPago = document.getElementById('idPagoEditar')?.value;
 
-    const datos = {
-        idCliente: parseInt(document.getElementById('clientePago').value),
-        idAlquiler: tipo === 'alquiler' && document.getElementById('alquilerPago').value ?
-            parseInt(document.getElementById('alquilerPago').value) : null,
-        idCompra: tipo === 'venta' && document.getElementById('ventaPago').value ?
-            parseInt(document.getElementById('ventaPago').value) : null,
-        monto: parseFloat(document.getElementById('montoPago').value),
-        metodoPago: document.getElementById('metodoPago').value,
-        idAdministrador: usuarioActual.idAdministrador
-    };
+    if (idPago) {
+        const datos = {
+            monto: parseFloat(document.getElementById('montoPago').value),
+            metodoPago: document.getElementById('metodoPago').value
+        };
+
+        try {
+            const respuesta = await fetch(`/pagos/editar/${idPago}/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(datos)
+            });
+
+            if (respuesta.ok) {
+                mostrarNotificacion('Pago actualizado exitosamente', 'success');
+                cerrarModal('modalPago');
+                await cargarPagos();
+                if (seccionActual === 'pagos') renderizarPagos();
+                if (seccionActual === 'dashboard') cargarEstadisticas();
+            } else {
+                const error = await respuesta.json();
+                mostrarNotificacion('Error al actualizar pago: ' + (error.error || 'Error desconocido'), 'error');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            mostrarNotificacion('Error de conexión', 'error');
+        }
+    } else {
+        const tipo = document.querySelector('input[name="tipoTransaccion"]:checked').value;
+
+        const datos = {
+            idCliente: parseInt(document.getElementById('clientePago').value),
+            idAlquiler: tipo === 'alquiler' && document.getElementById('alquilerPago').value ?
+                parseInt(document.getElementById('alquilerPago').value) : null,
+            idCompra: tipo === 'venta' && document.getElementById('ventaPago').value ?
+                parseInt(document.getElementById('ventaPago').value) : null,
+            monto: parseFloat(document.getElementById('montoPago').value),
+            metodoPago: document.getElementById('metodoPago').value,
+            idAdministrador: usuarioActual.idAdministrador
+        };
+
+        try {
+            const respuesta = await fetch('/pagos/registrar/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(datos)
+            });
+
+            if (respuesta.ok) {
+                mostrarNotificacion('Pago registrado exitosamente', 'success');
+                cerrarModal('modalPago');
+                await cargarPagos();
+                if (seccionActual === 'pagos') renderizarPagos();
+                if (seccionActual === 'dashboard') cargarEstadisticas();
+            } else {
+                const error = await respuesta.json();
+                mostrarNotificacion('Error al registrar pago: ' + (error.error || 'Error desconocido'), 'error');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            mostrarNotificacion('Error de conexión', 'error');
+        }
+    }
+}
+
+async function eliminarPago(id) {
+    if (!confirm('¿Estás seguro de eliminar este pago?')) return;
 
     try {
-        const respuesta = await fetch('/pagos/registrar/', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(datos)
+        const respuesta = await fetch(`/pagos/eliminar/${id}/?idAdministrador=${usuarioActual.idAdministrador}`, {
+            method: 'DELETE'
         });
 
         if (respuesta.ok) {
-            mostrarNotificacion('Pago registrado exitosamente', 'success');
-            cerrarModal('modalPago');
+            mostrarNotificacion('Pago eliminado exitosamente', 'success');
             await cargarPagos();
             if (seccionActual === 'pagos') renderizarPagos();
             if (seccionActual === 'dashboard') cargarEstadisticas();
         } else {
             const error = await respuesta.json();
-            mostrarNotificacion('Error al registrar pago: ' + (error.error || 'Error desconocido'), 'error');
+            mostrarNotificacion('Error al eliminar pago: ' + (error.error || 'Error desconocido'), 'error');
         }
     } catch (error) {
         console.error('Error:', error);
         mostrarNotificacion('Error de conexión', 'error');
     }
+}
+
+function editarPago(id) {
+    const pago = pagos.find(p => p.idTransaccion === id);
+    if (!pago) return;
+
+    document.getElementById('montoPago').value = pago.Monto;
+    document.getElementById('metodoPago').value = pago.MetodoPago;
+
+    // Ocultar selectores de transacción en modo edición
+    document.getElementById('contenedorAlquiler').classList.add('hidden');
+    document.getElementById('contenedorVenta').classList.add('hidden');
+    document.querySelectorAll('input[name="tipoTransaccion"]').forEach(r => r.disabled = true);
+
+    let inputId = document.getElementById('idPagoEditar');
+    if (!inputId) {
+        inputId = document.createElement('input');
+        inputId.type = 'hidden';
+        inputId.id = 'idPagoEditar';
+        document.getElementById('formularioPago').appendChild(inputId);
+    }
+    inputId.value = id;
+
+    document.querySelector('#modalPago h3').textContent = 'Editar Pago';
+    abrirModal('modalPago');
 }
 
 // ESTACIONES
@@ -1478,7 +1570,8 @@ function cerrarModal(idModal) {
         'modalCliente': 'formularioCliente',
         'modalAlquiler': 'formularioAlquiler',
         'modalEstacion': 'formularioEstacion',
-        'modalPago': 'formularioPago'
+        'modalPago': 'formularioPago',
+        'modalVenta': 'formularioVenta'
     };
 
     const formulario = document.getElementById(formularios[idModal]);
@@ -1490,12 +1583,27 @@ function cerrarModal(idModal) {
     const inputIdCliente = document.getElementById('idClienteEditar');
     if (inputIdCliente) inputIdCliente.remove();
 
+    const inputIdPago = document.getElementById('idPagoEditar');
+    if (inputIdPago) inputIdPago.remove();
+
+    if (idModal === 'modalPago') {
+        document.getElementById('contenedorAlquiler').classList.remove('hidden');
+        document.getElementById('contenedorVenta').classList.add('hidden');
+        document.querySelectorAll('input[name="tipoTransaccion"]').forEach(r => {
+            r.disabled = false;
+            if (r.value === 'alquiler') r.checked = true;
+        });
+        document.querySelector('#modalPago h3').textContent = 'Registrar Pago';
+    }
+
     if (idModal === 'modalProducto') {
         document.querySelector('#modalProducto h3').textContent = 'Agregar Nuevo Producto';
     } else if (idModal === 'modalCliente') {
         document.querySelector('#modalCliente h3').textContent = 'Agregar Nuevo Cliente';
     }
 }
+
+
 function cargarVentasEnSelect() {
     const select = document.getElementById('ventaPago');
     if (!select) return;
@@ -1573,16 +1681,20 @@ async function cargarVentas() {
     }
 }
 
-function cargarVentasEnSelect() {
-    cargarVentas().then(ventas => {
+async function cargarVentasEnSelect() {
+    try {
+        const respuesta = await fetch(`/ventas/?idAdministrador=${usuarioActual.idAdministrador}`);
+        const datos = await respuesta.json();
+        const ventasDisponibles = datos.ventas || [];
+
         const select = document.getElementById('ventaPago');
         if (!select) return;
 
-        const ventasPendientes = ventas.filter(v => v.Estado === 'Pendiente' || v.Estado === 'Activa');
-
-        select.innerHTML = '<option value="">Seleccionar venta</option>' +
-            ventasPendientes.map(v => `<option value="${v.idCompra}">${v.ProductoNombre} - ${v.ClienteNombre} (L. ${v.MontoVenta})</option>`).join('');
-    });
+        select.innerHTML = '<option value="">Seleccionar venta (opcional)</option>' +
+            ventasDisponibles.map(v => `<option value="${v.idCompra}">${v.ProductoNombre} - ${v.ClienteNombre} (L. ${v.MontoVenta})</option>`).join('');
+    } catch (error) {
+        console.error('Error al cargar ventas:', error);
+    }
 }
 
 document.addEventListener('click', function(evento) {

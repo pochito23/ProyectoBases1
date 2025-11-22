@@ -76,8 +76,10 @@ def listar_productos(request, idAdministrador=None):
         return JsonResponse({'error': 'ID de administrador requerido'}, status=400)
 
     query = """
-        SELECT p.idProducto, p.nombre, p.Precio, p.Descripcion, p.TipoProducto, p.Disponibles
+        SELECT p.idProducto, p.nombre, p.Precio, p.Descripcion, p.TipoProducto, p.Disponibles,
+               pv.idProductoVenta, pv.CodigoBarras
         FROM productos p
+        LEFT JOIN productosventa pv ON p.idProducto = pv.idProducto
         WHERE p.idAdministrador = %s
         ORDER BY p.nombre
     """
@@ -112,6 +114,13 @@ def crear_producto(request):
                 VALUES (%s, %s, %s, %s)
             """
             ejecutar_insert(query_arrendamiento, [producto_id, 'Dia', 'Disponible', '24/7'])
+        elif data.get('tipoProducto') == 'Venta':
+            codigo_barras = f"VTA{producto_id:06d}"
+            query_venta = """
+                INSERT INTO productosventa (idProducto, CodigoBarras, Disponibles)
+                VALUES (%s, %s, %s)
+            """
+            ejecutar_insert(query_venta, [producto_id, codigo_barras, data.get('disponibles', 0)])
 
         return JsonResponse({'mensaje': 'Producto creado exitosamente', 'id': producto_id}, status=201)
 
@@ -425,13 +434,13 @@ def crear_venta(request):
         data = json.loads(request.body)
 
         query_producto = """
-                         SELECT p.idProducto, p.Disponibles, p.Precio, pv.idProductoVenta
-                         FROM productos p
-                                  INNER JOIN productosventa pv ON p.idProducto = pv.idProducto
-                         WHERE p.idProducto = %s \
-                           AND p.idAdministrador = %s \
-                           AND p.TipoProducto = 'Venta' \
-                         """
+            SELECT p.idProducto, p.Disponibles, p.Precio, pv.idProductoVenta
+            FROM productos p
+            INNER JOIN productosventa pv ON p.idProducto = pv.idProducto
+            WHERE p.idProducto = %s 
+            AND p.idAdministrador = %s 
+            AND p.TipoProducto = 'Venta'
+        """
         resultado = ejecutar_query(query_producto, [data.get('idProducto'), data.get('idAdministrador')])
 
         if not resultado:
@@ -447,10 +456,10 @@ def crear_venta(request):
         monto_total = float(producto['Precio']) * cantidad
 
         query_venta = """
-                      INSERT INTO productosventa_clientes
-                          (idCliente, idProductoVenta, CantidadProducto, MontoVenta)
-                      VALUES (%s, %s, %s, %s) \
-                      """
+            INSERT INTO productosventa_clientes
+            (idCliente, idProductoVenta, CantidadProducto, MontoVenta)
+            VALUES (%s, %s, %s, %s)
+        """
         params = [
             data.get('idCliente'),
             producto['idProductoVenta'],
@@ -460,10 +469,10 @@ def crear_venta(request):
         venta_id = ejecutar_insert(query_venta, params)
 
         query_update_stock = """
-                             UPDATE productos
-                             SET Disponibles = Disponibles - %s
-                             WHERE idProducto = %s \
-                             """
+            UPDATE productos
+            SET Disponibles = Disponibles - %s
+            WHERE idProducto = %s
+        """
         ejecutar_insert(query_update_stock, [cantidad, data.get('idProducto')])
 
         return JsonResponse({
@@ -474,6 +483,7 @@ def crear_venta(request):
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
 
 
 @csrf_exempt
@@ -570,25 +580,33 @@ def eliminar_venta(request, venta_id):
         return JsonResponse({'error': str(e)}, status=500)
 @csrf_exempt
 def listar_pagos(request):
-        id_admin = request.GET.get('idAdministrador')
-        if not id_admin:
-            return JsonResponse({'error': 'ID de administrador requerido'}, status=400)
+    id_admin = request.GET.get('idAdministrador')
+    if not id_admin:
+        return JsonResponse({'error': 'ID de administrador requerido'}, status=400)
 
-        query = """
-                SELECT pt.idTransaccion, \
-                       pt.MontoTransaccion as Monto, \
-                       t.FechaTransaccion as FechaPago,
-                       pt.MetodoPago, \
-                       CONCAT(p.Nombre, ' ', p.Apellido) as Cliente
-                FROM pagostransacciones pt
-                         INNER JOIN transacciones t ON pt.idTransaccion = t.idTransaccion
-                         LEFT JOIN clientes c ON t.idCliente = c.idCliente
-                         LEFT JOIN personas p ON c.idPersona = p.idPersona
-                WHERE t.idCliente IN (SELECT idCliente FROM clientes WHERE idAdministrador = %s)
-                ORDER BY t.FechaTransaccion DESC
+    query = """
+        SELECT 
+            pt.idTransaccion,
+            pt.MontoTransaccion as Monto,
+            t.FechaTransaccion as FechaPago,
+            pt.MetodoPago,
+            CONCAT(p.Nombre, ' ', p.Apellido) as Cliente,
+            CASE 
+                WHEN pt.idAlquiler IS NOT NULL THEN 'Alquiler'
+                WHEN pt.idCompra IS NOT NULL THEN 'Venta'
+                ELSE 'Manual'
+            END as TipoTransaccion,
+            pt.idAlquiler,
+            pt.idCompra
+        FROM pagostransacciones pt
+        INNER JOIN transacciones t ON pt.idTransaccion = t.idTransaccion
+        LEFT JOIN clientes c ON t.idCliente = c.idCliente
+        LEFT JOIN personas p ON c.idPersona = p.idPersona
+        WHERE t.idCliente IN (SELECT idCliente FROM clientes WHERE idAdministrador = %s)
+        ORDER BY t.FechaTransaccion DESC
     """
-        pagos = ejecutar_query(query, [id_admin])
-        return JsonResponse({'pagos': pagos}, safe=False)
+    pagos = ejecutar_query(query, [id_admin])
+    return JsonResponse({'pagos': pagos}, safe=False)
 
 
 @csrf_exempt
@@ -633,6 +651,8 @@ def registrar_pago(request):
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
 @csrf_exempt
 def editar_pago(request, pago_id):
     if request.method != 'POST':
@@ -640,13 +660,20 @@ def editar_pago(request, pago_id):
 
     try:
         data = json.loads(request.body)
+
         query = """
-            UPDATE pagostransacciones
-            SET MontoTransaccion = %s, MetodoPago = %s
-            WHERE idTransaccion = %s
-        """
-        params = [data.get('montoTransaccion'), data.get('metodoPago'), pago_id]
+                UPDATE pagostransacciones
+                SET MontoManual = %s, \
+                    MetodoPago  = %s
+                WHERE idTransaccion = %s \
+                """
+        params = [
+            float(data.get('monto')),
+            data.get('metodoPago'),
+            pago_id
+        ]
         ejecutar_insert(query, params)
+
         return JsonResponse({'mensaje': 'Pago actualizado exitosamente'}, status=200)
 
     except Exception as e:
@@ -661,13 +688,14 @@ def eliminar_pago(request, pago_id):
     try:
         query_pago = "DELETE FROM pagostransacciones WHERE idTransaccion = %s"
         ejecutar_insert(query_pago, [pago_id])
+
         query_transaccion = "DELETE FROM transacciones WHERE idTransaccion = %s"
         ejecutar_insert(query_transaccion, [pago_id])
-        return JsonResponse({'mensaje': 'Pago eliminado'}, status=200)
+
+        return JsonResponse({'mensaje': 'Pago eliminado exitosamente'}, status=200)
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
-
 @csrf_exempt
 def listar_estaciones(request):
     id_admin = request.GET.get('idAdministrador')
