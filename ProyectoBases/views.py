@@ -162,10 +162,17 @@ def eliminar_producto(request, producto_id):
         return JsonResponse({'error': 'Metodo no permitido'}, status=405)
 
     id_admin = request.GET.get('idAdministrador')
-    query = "DELETE FROM productos WHERE idProducto = %s AND idAdministrador = %s"
 
     try:
+        query_arr = "DELETE FROM productosarrendamiento WHERE idProducto = %s"
+        ejecutar_insert(query_arr, [producto_id])
+
+        query_venta = "DELETE FROM productosventa WHERE idProducto = %s"
+        ejecutar_insert(query_venta, [producto_id])
+
+        query = "DELETE FROM productos WHERE idProducto = %s AND idAdministrador = %s"
         ejecutar_insert(query, [producto_id, id_admin])
+
         return JsonResponse({'mensaje': 'Producto eliminado'}, status=200)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)

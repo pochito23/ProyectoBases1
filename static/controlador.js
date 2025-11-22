@@ -156,7 +156,9 @@ async function cargarDatosIniciales() {
         cargarClientes(),
         cargarAlquileres(),
         cargarEstaciones(),
-        cargarVentas()
+        cargarVentas(),
+        cargarPagos()
+
     ]);
 }
 
@@ -243,10 +245,10 @@ function mostrarSeccion(seccion) {
             contenedor.innerHTML = obtenerHTMLAlquileres();
             renderizarAlquileres();
             break;
-                    case 'ventas':
+        case 'ventas':
             contenedor.innerHTML = obtenerHTMLVentas();
-            renderizarVentas();
-            break;
+            renderizarVentas()
+            break
         case 'clientes':
             contenedor.innerHTML = obtenerHTMLClientes();
             renderizarClientes();
@@ -605,7 +607,7 @@ function editarProducto(id) {
 }
 
 async function eliminarProducto(id) {
-    if (!confirm('¿Estás seguro de eliminar este producto?')) return;
+    if (!confirm('¿Estás seguro de eliminar este producto? Se eliminarán también sus registros relacionados.')) return;
 
     try {
         const respuesta = await fetch(`/productos/eliminar/${id}/?idAdministrador=${usuarioActual.idAdministrador}`, {
@@ -618,14 +620,14 @@ async function eliminarProducto(id) {
             if (seccionActual === 'productos') renderizarProductos();
             if (seccionActual === 'dashboard') cargarEstadisticas();
         } else {
-            mostrarNotificacion('Error al eliminar producto', 'error');
+            const error = await respuesta.json();
+            mostrarNotificacion('Error al eliminar producto: ' + (error.error || 'Puede tener alquileres o ventas asociadas'), 'error');
         }
     } catch (error) {
         console.error('Error:', error);
         mostrarNotificacion('Error de conexión', 'error');
     }
 }
-
 // CLIENTES
 function obtenerHTMLClientes() {
     return `
@@ -671,9 +673,7 @@ function renderizarClientes() {
                 <button onclick="editarCliente(${c.idCliente})" class="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all text-sm">
                     <i class="fas fa-edit mr-1"></i>Editar
                 </button>
-                <button onclick="eliminarCliente(${c.idCliente})" class="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all text-sm">
-                    <i class="fas fa-trash mr-1"></i>Eliminar
-                </button>
+
             </div>
         </div>
     `).join('');
@@ -743,28 +743,6 @@ function editarCliente(id) {
     abrirModal('modalCliente');
 }
 
-async function eliminarCliente(id) {
-    if (!confirm('¿Estás seguro de eliminar este cliente?')) return;
-
-    try {
-        const respuesta = await fetch(`/clientes/eliminar/${id}/?idAdministrador=${usuarioActual.idAdministrador}`, {
-            method: 'DELETE'
-        });
-
-        if (respuesta.ok) {
-            mostrarNotificacion('Cliente eliminado exitosamente', 'success');
-            await cargarClientes();
-            if (seccionActual === 'clientes') renderizarClientes();
-            if (seccionActual === 'dashboard') cargarEstadisticas();
-        } else {
-            const error = await respuesta.json();
-            mostrarNotificacion('Error al eliminar cliente: ' + (error.error || 'Error desconocido'), 'error');
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        mostrarNotificacion('Error de conexión', 'error');
-    }
-}
 
 // ALQUILERES
 function obtenerHTMLAlquileres() {
@@ -831,6 +809,8 @@ async function cargarVentas() {
         const respuesta = await fetch(`/ventas/?idAdministrador=${usuarioActual.idAdministrador}`);
         const datos = await respuesta.json();
         ventas = datos.ventas || [];
+                console.log('✅ Ventas cargadas:', ventas.length, 'ventas'); // Debug
+
     } catch (error) {
         console.error('Error al cargar ventas:', error);
         ventas = [];
@@ -864,6 +844,9 @@ function renderizarVentas() {
         contenedor.innerHTML = '<p class="text-gray-500 text-center py-8">No hay ventas registradas</p>';
         return;
     }
+
+        console.log('🔄 Renderizando ventas:', ventas.length, 'ventas'); // Debug
+
 
     contenedor.innerHTML = ventas.map(v => `
         <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all">
@@ -900,6 +883,7 @@ async function guardarVenta(evento) {
         idAdministrador: usuarioActual.idAdministrador
     };
 
+
     try {
         const respuesta = await fetch('/ventas/crear/', {
             method: 'POST',
@@ -911,17 +895,25 @@ async function guardarVenta(evento) {
             const resultado = await respuesta.json();
             mostrarNotificacion(`Venta registrada exitosamente. Total: L. ${resultado.monto_total.toFixed(2)}`, 'success');
             cerrarModal('modalVenta');
+
             await cargarVentas();
-            await cargarProductos(); // Recargar productos para actualizar stock
-            if (seccionActual === 'ventas') renderizarVentas();
-            if (seccionActual === 'productos') renderizarProductos();
-            if (seccionActual === 'dashboard') cargarEstadisticas();
+            await cargarProductos();
+
+            if (seccionActual === 'ventas') {
+                renderizarVentas();
+            }
+            if (seccionActual === 'productos') {
+                renderizarProductos();
+            }
+            if (seccionActual === 'dashboard') {
+                cargarEstadisticas();
+            }
         } else {
             const error = await respuesta.json();
             mostrarNotificacion('Error al registrar venta: ' + (error.error || 'Error desconocido'), 'error');
         }
     } catch (error) {
-        console.error('Error:', error);
+        console.error('❌ Error:', error);
         mostrarNotificacion('Error de conexión', 'error');
     }
 }
